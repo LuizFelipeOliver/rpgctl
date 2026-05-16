@@ -7,23 +7,27 @@ import (
 	"strings"
 )
 
-func RunDice(args []string) {
+func RunDice(args []string) error {
 	if len(args) == 0 {
-		fmt.Println("use: rpgctl dice d20")
-		return
+		return fmt.Errorf("use: rpgctl dice d20")
+
 	}
 
 	result, err := dice(args[0])
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	fmt.Println(result)
+	return nil
 }
 
 func dice(arg string) (int, error) {
 	if !strings.Contains(arg, "d") {
+		return 0, fmt.Errorf("Formato de dado invalido: %s", arg)
+	}
+
+	if strings.Count(arg, "d") != 1 {
 		return 0, fmt.Errorf("Formato de dado invalido: %s", arg)
 	}
 
