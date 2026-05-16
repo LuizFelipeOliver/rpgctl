@@ -8,7 +8,9 @@ import (
 func main() {
 	command := os.Args[1:]
 	if len(command) == 0 {
-		fmt.Println("rpgctl <command> [arguments]")
+		fmt.Println("Usage: rpgctl <command> [arguments]")
+		fmt.Println("Available commands:")
+		fmt.Println("  dice  - Roll dice using NdM notation")
 		os.Exit(2)
 	}
 	switch command[0] {
@@ -18,7 +20,7 @@ func main() {
 			os.Exit(1)
 		}
 	default:
-		fmt.Println("command not found: ", command[0])
+		fmt.Fprintln(os.Stderr, "command not found:", command[0])
 		os.Exit(1)
 	}
 }
