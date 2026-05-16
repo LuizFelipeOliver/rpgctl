@@ -13,7 +13,10 @@ func main() {
 	}
 	switch command[0] {
 	case "dice":
-		RunDice(command[1:])
+		if err := RunDice(command[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Println("command not found: ", command[0])
 		os.Exit(1)
