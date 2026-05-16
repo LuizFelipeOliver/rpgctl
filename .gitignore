@@ -1,0 +1,9 @@
+.notes/
+.vscode/
+
+bin/
+dist/
+
+*.exe
+*.test
+coverage.out
