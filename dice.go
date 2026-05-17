@@ -37,6 +37,8 @@ func dice(arg string) (int, error) {
 	return rollDice(d), nil
 }
 
+const maxDiceQuantity = 100
+
 func parseDice(arg string) (Dice, error) {
 	if !strings.Contains(arg, "d") {
 		return Dice{}, fmt.Errorf("formato de dado invalido: %s", arg)
@@ -65,6 +67,10 @@ func parseDice(arg string) (Dice, error) {
 
 	if quantity <= 0 {
 		return Dice{}, fmt.Errorf("quantidade de dados invalida: %d", quantity)
+	}
+
+	if quantity > maxDiceQuantity {
+		return Dice{}, fmt.Errorf("exedido quantidade de dados: %d (max:%d)", quantity, maxDiceQuantity)
 	}
 
 	expr := strings.ReplaceAll(parts[1], "-", "+-")
