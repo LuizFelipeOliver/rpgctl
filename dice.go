@@ -39,17 +39,17 @@ func dice(arg string) (int, error) {
 
 func parseDice(arg string) (Dice, error) {
 	if !strings.Contains(arg, "d") {
-		return Dice{}, fmt.Errorf("Formato de dado invalido: %s", arg)
+		return Dice{}, fmt.Errorf("formato de dado invalido: %s", arg)
 	}
 
 	if strings.Count(arg, "d") != 1 {
-		return Dice{}, fmt.Errorf("Formato de dado invalido: %s", arg)
+		return Dice{}, fmt.Errorf("formato de dado invalido: %s", arg)
 	}
 
 	parts := strings.Split(arg, "d")
 
 	if parts[1] == "" {
-		return Dice{}, fmt.Errorf("Formato de dado invalido: %s", arg)
+		return Dice{}, fmt.Errorf("formato de dado invalido: %s", arg)
 	}
 
 	quantityText := parts[0]
@@ -111,7 +111,7 @@ func parseSides(sidesText string) (int, error) {
 	case 2, 4, 6, 8, 10, 12, 20, 100:
 		return sides, nil
 	default:
-		return 0, fmt.Errorf("quantidade de faces invalida: %s", sides)
+		return 0, fmt.Errorf("quantidade de faces invalida: %d", sides)
 	}
 }
 
