@@ -56,7 +56,7 @@ func RunInitiative(args []string) error {
 			return fmt.Errorf("use: rpgctl init remove <name>")
 		}
 
-		name := strings.TrimSpace(args[1])
+		name := args[1]
 
 		entries, err := loadInitiative()
 		if err != nil {
@@ -91,7 +91,7 @@ func removeInitiative(entries []Player, name string) []Player {
 	var result []Player
 
 	for _, entry := range entries {
-		if !strings.Contains(entry.Name, name) {
+		if entry.Name != name {
 			result = append(result, entry)
 		}
 	}
@@ -138,7 +138,7 @@ func loadInitiative() ([]Player, error) {
 
 	var entries []Player
 	if err := json.Unmarshal(data, &entries); err != nil {
-		return []Player{}, nil
+		return nil, err
 	}
 
 	if err := prepareInitiative(entries); err != nil {
@@ -172,5 +172,5 @@ func saveInitiative(entries []Player) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0666)
+	return os.WriteFile(path, data, 0600)
 }
