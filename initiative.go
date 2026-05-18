@@ -16,7 +16,7 @@ type Player struct {
 
 func RunInitiative(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("use: rpgctl init <add|list|remove|clear>")
+		return fmt.Errorf("use: rpgctl init <add|list|remove>")
 	}
 
 	switch args[0] {
@@ -160,9 +160,9 @@ func saveInitiative(entries []Player) error {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
