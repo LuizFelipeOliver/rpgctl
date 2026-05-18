@@ -19,6 +19,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+	case "init":
+		if err := RunInitiative(command[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintln(os.Stderr, "command not found:", command[0])
 		os.Exit(1)
