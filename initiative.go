@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 type Player struct {
@@ -25,7 +26,10 @@ func RunInitiative(args []string) error {
 			return fmt.Errorf("use: rpgctl init add <name> <value>")
 		}
 
-		name := args[1]
+		name := strings.TrimSpace(args[1])
+		if name == "" {
+			return fmt.Errorf("nome invalido")
+		}
 
 		value, err := strconv.Atoi(args[2])
 		if err != nil {
@@ -134,6 +138,10 @@ func loadInitiative() ([]Player, error) {
 
 	var entries []Player
 	if err := json.Unmarshal(data, &entries); err != nil {
+		return nil, err
+	}
+
+	if err := prepareInitiative(entries); err != nil {
 		return nil, err
 	}
 
