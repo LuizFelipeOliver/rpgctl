@@ -11,6 +11,7 @@ func main() {
 		fmt.Println("Usage: rpgctl <command> [arguments]")
 		fmt.Println("Available commands:")
 		fmt.Println("  dice  - Roll dice using NdM notation")
+		fmt.Println("  init  - Manage initiative (add, remove, list)")
 		os.Exit(2)
 	}
 	switch command[0] {
