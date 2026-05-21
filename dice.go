@@ -16,7 +16,6 @@ type Dice struct {
 func RunDice(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("use: rpgctl dice d20")
-
 	}
 
 	result, err := dice(args[0])
@@ -24,7 +23,7 @@ func RunDice(args []string) error {
 		return err
 	}
 
-	fmt.Println(result)
+	fmt.Printf("%s = %d\n", args[0], result)
 	return nil
 }
 
