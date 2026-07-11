@@ -1,0 +1,26 @@
+[
+	{
+		"name": "Poção de Cura",
+		"cost": 50,
+		"currency": "gp",
+		"effect": "Recupera 2d4+2 PV"
+	},
+	{
+		"name": "Poção de Invisibilidade",
+		"cost": 200,
+		"currency": "gp",
+		"effect": "Invisível por 1 hora"
+	},
+	{
+		"name": "Poção de Força do Touro",
+		"cost": 100,
+		"currency": "gp",
+		"effect": "Força +4 por 1 minuto"
+	},
+	{
+		"name": "Poção de Respiração Aquática",
+		"cost": 80,
+		"currency": "gp",
+		"effect": "Respirar debaixo d'água por 1 hora"
+	}
+]

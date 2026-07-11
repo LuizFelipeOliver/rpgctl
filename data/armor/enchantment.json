@@ -1,0 +1,26 @@
+[
+	{
+		"title": "Fortaleza",
+		"type": true,
+		"description": "CA +1",
+		"chance": 0.30
+	},
+	{
+		"title": "Camuflagem Natural",
+		"type": true,
+		"description": "Vantagem em furtividade em áreas naturais",
+		"chance": 0.20
+	},
+	{
+		"title": "Peso dos Mortos",
+		"type": false,
+		"description": "Desvantagem em furtividade",
+		"chance": 0.25
+	},
+	{
+		"title": "Atrito",
+		"type": false,
+		"description": "CA -1 ao ser acertado por crítico",
+		"chance": 0.15
+	}
+]

@@ -1,0 +1,32 @@
+[
+	{
+		"title": "Fúria do Dragão",
+		"type": true,
+		"description": "Adiciona 1d4 de dano de fogo",
+		"chance": 0.20
+	},
+	{
+		"title": "Lâmina Glacial",
+		"type": true,
+		"description": "Adiciona 1d4 de dano de gelo",
+		"chance": 0.15
+	},
+	{
+		"title": "Lâmina Afiada",
+		"type": true,
+		"description": "Crita em 19-20",
+		"chance": 0.25
+	},
+	{
+		"title": "Sangramento",
+		"type": false,
+		"description": "Causa 1 de dano por rodada",
+		"chance": 0.25
+	},
+	{
+		"title": "Maldição do Ferrugem",
+		"type": false,
+		"description": "Quebra com 1 natural no ataque",
+		"chance": 0.15
+	}
+]

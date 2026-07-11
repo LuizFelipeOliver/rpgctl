@@ -1,0 +1,30 @@
+[
+	{
+		"name": "Anel de Cobre",
+		"type": "ring",
+		"cost": 5,
+		"currency": "gp",
+		"enchantment": []
+	},
+	{
+		"name": "Máscara de Madeira",
+		"type": "mask",
+		"cost": 3,
+		"currency": "gp",
+		"enchantment": []
+	},
+	{
+		"name": "Colar de Osso",
+		"type": "necklace",
+		"cost": 2,
+		"currency": "gp",
+		"enchantment": []
+	},
+	{
+		"name": "Luva de Couro",
+		"type": "glove",
+		"cost": 4,
+		"currency": "gp",
+		"enchantment": []
+	}
+]

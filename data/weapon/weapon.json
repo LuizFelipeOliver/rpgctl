@@ -1,0 +1,65 @@
+[
+	{
+		"name": "Espada Curta",
+		"damage": "1d6",
+		"damage_type": "slashing",
+		"cost": 7,
+		"currency": "gp",
+		"category": "simple",
+		"type": "light"
+	},
+	{
+		"name": "Cimitarra",
+		"damage": "1d6",
+		"damage_type": "slashing",
+		"cost": 25,
+		"currency": "gp",
+		"category": "martial",
+		"type": "light"
+	},
+	{
+		"name": "Maça",
+		"damage": "1d6",
+		"damage_type": "bludgeoning",
+		"cost": 5,
+		"currency": "gp",
+		"category": "simple",
+		"type": "one-handed"
+	},
+	{
+		"name": "Espada Longa",
+		"damage": "1d8",
+		"damage_type": "slashing",
+		"cost": 15,
+		"currency": "gp",
+		"category": "martial",
+		"type": "one-handed"
+	},
+	{
+		"name": "Machado Grande",
+		"damage": "1d12",
+		"damage_type": "slashing",
+		"cost": 30,
+		"currency": "gp",
+		"category": "martial",
+		"type": "two-handed"
+	},
+	{
+		"name": "Arco Curto",
+		"damage": "1d6",
+		"damage_type": "piercing",
+		"cost": 25,
+		"currency": "gp",
+		"category": "simple",
+		"type": "ranged"
+	},
+	{
+		"name": "Soco Ingombrante",
+		"damage": "1d4",
+		"damage_type": "bludgeoning",
+		"cost": 0,
+		"currency": "gp",
+		"category": "simple",
+		"type": "unarmed"
+	}
+]

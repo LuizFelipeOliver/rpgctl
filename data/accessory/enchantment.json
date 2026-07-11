@@ -1,0 +1,26 @@
+[
+	{
+		"title": "Sorte do Halfling",
+		"type": true,
+		"description": "+1 em testes de sorte",
+		"chance": 0.30
+	},
+	{
+		"title": "Visão Noturna",
+		"type": true,
+		"description": "Enxerga no escuro até 18m",
+		"chance": 0.25
+	},
+	{
+		"title": "Olho do Corvo",
+		"type": false,
+		"description": "Visão noturna, mas medo de luz do dia",
+		"chance": 0.20
+	},
+	{
+		"title": "Peso da Culpa",
+		"type": false,
+		"description": "-1 em testes de carisma",
+		"chance": 0.15
+	}
+]

@@ -1,0 +1,18 @@
+[
+	{
+		"description": "Enjoo por 1 hora",
+		"chance": 0.30
+	},
+	{
+		"description": "Tontura por 10 minutos",
+		"chance": 0.25
+	},
+	{
+		"description": "Pele azul por 1d4 horas",
+		"chance": 0.15
+	},
+	{
+		"description": "Alucinações leves por 30 minutos",
+		"chance": 0.20
+	}
+]
