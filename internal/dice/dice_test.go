@@ -61,7 +61,7 @@ func TestRoll(t *testing.T) {
 		expectedTotal := result.Modifier
 		for _, g := range result.Groups {
 			for _, r := range g.Rolls {
-				expectedTotal += g.Sign * r
+				expectedTotal += r
 			}
 		}
 		if result.Total != expectedTotal {
