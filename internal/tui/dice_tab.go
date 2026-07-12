@@ -1,21 +1,19 @@
 package tui
 
 import (
-	"fmt"
-	"math/rand"
-	"regexp"
-	"strconv"
 	"strings"
 	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"rpg-tui/internal/dice"
 )
 
 type DiceModel struct {
 	showPopup bool
 	input     string
 	result    string
+	hasError  bool
 }
 
 func NewDiceModel() DiceModel {
@@ -27,7 +25,6 @@ func (d DiceModel) Update(msg tea.KeyMsg) DiceModel {
 		if msg.String() == "d" {
 			d.showPopup = true
 			d.input = ""
-			d.result = ""
 		}
 		return d
 	}
@@ -57,53 +54,15 @@ func isDiceChar(s string) bool {
 	return unicode.IsDigit(c) || c == 'd' || c == '+' || c == '-'
 }
 
-var dicePattern = regexp.MustCompile(`^(\d*)d(\d+)([+-]\d+)?$`)
-
 func (d *DiceModel) roll() {
-	matches := dicePattern.FindStringSubmatch(d.input)
-	if matches == nil {
+	r, err := dice.Roll(d.input)
+	if err != nil {
 		d.result = "Formato invalido. Use NdS ou NdS+M"
+		d.hasError = true
 		return
 	}
-
-	numDice := 1
-	if matches[1] != "" {
-		n, err := strconv.Atoi(matches[1])
-		if err == nil && n > 0 {
-			numDice = n
-		}
-	}
-
-	sides, _ := strconv.Atoi(matches[2])
-	if sides < 2 {
-		sides = 2
-	}
-	if sides > 1000 {
-		sides = 1000
-	}
-	if numDice > 100 {
-		numDice = 100
-	}
-
-	modifier := 0
-	if matches[3] != "" {
-		modifier, _ = strconv.Atoi(matches[3])
-	}
-
-	rolls := make([]string, numDice)
-	total := 0
-	for i := range numDice {
-		r := rand.Intn(sides) + 1
-		rolls[i] = strconv.Itoa(r)
-		total += r
-	}
-
-	parts := strings.Join(rolls, " + ")
-	if modifier != 0 {
-		parts = fmt.Sprintf("%s %+d", parts, modifier)
-		total += modifier
-	}
-	d.result = fmt.Sprintf("%s = %d", parts, total)
+	d.result = r.String()
+	d.hasError = false
 }
 
 func (m Model) renderDiceContent() string {
@@ -117,7 +76,11 @@ func (m Model) renderDiceContent() string {
 
 	if m.dice.result != "" {
 		b.WriteString("Ultimo resultado:\n")
-		b.WriteString(green.Render(m.dice.result))
+		if m.dice.hasError {
+			b.WriteString(red.Render(m.dice.result))
+		} else {
+			b.WriteString(green.Render(m.dice.result))
+		}
 		b.WriteString("\n\n")
 	}
 
@@ -139,7 +102,11 @@ func (m Model) renderDicePopup() string {
 
 	if m.dice.result != "" {
 		content.WriteString("Resultado:\n")
-		content.WriteString(diceResult.Render(m.dice.result))
+		if m.dice.hasError {
+			content.WriteString(red.Render(m.dice.result))
+		} else {
+			content.WriteString(diceResult.Render(m.dice.result))
+		}
 		content.WriteString("\n\n")
 	}
 
