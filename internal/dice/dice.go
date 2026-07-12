@@ -99,75 +99,85 @@ func (r *RollResult) String() string {
 }
 
 func parseExpr(s string) ([]Group, int, error) {
-	pos := 0
+	p := &parser{raw: s}
 
-	count, sides, newPos, ok := parseCountSides(s, pos)
+	count, sides, ok := p.readDice()
 	if !ok {
 		return nil, 0, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
 	}
+
 	groups := []Group{{Count: count, Sides: sides}}
 	modifier := 0
-	pos = newPos
 
-	for pos < len(s) {
-		var err error
-		var sign int
-		sign, pos, err = parseSign(s, pos)
-		if err != nil {
-			return nil, 0, err
+	for p.next() {
+		sign := p.readSign()
+		if p.err != nil {
+			return nil, 0, p.err
 		}
 
-		count, sides, newPos, ok = parseCountSides(s, pos)
-		if ok {
+		if count, sides, ok = p.readDice(); ok {
 			if sign < 0 {
 				return nil, 0, errors.New("dado negativo nao permitido")
 			}
 			groups = append(groups, Group{Count: count, Sides: sides})
-			pos = newPos
 		} else {
-			var num int
-			num, pos = parseNumber(s, pos)
-			modifier += sign * num
+			modifier += sign * p.readNumber()
 		}
 	}
 
 	return groups, modifier, nil
 }
 
-func parseCountSides(s string, pos int) (count, sides, newPos int, ok bool) {
-	count, newPos = parseNumber(s, pos)
-	if newPos >= len(s) || s[newPos] != 'd' {
-		return 0, 0, pos, false
+type parser struct {
+	raw string
+	pos int
+	err error
+}
+
+func (p *parser) next() bool {
+	return p.err == nil && p.pos < len(p.raw)
+}
+
+func (p *parser) readSign() int {
+	switch p.raw[p.pos] {
+	case '+':
+		p.pos++
+		return 1
+	case '-':
+		p.pos++
+		return -1
+	default:
+		p.err = fmt.Errorf("caractere inesperado: %c", p.raw[p.pos])
+		return 0
 	}
-	newPos++
-	sides, newPos = parseNumber(s, newPos)
+}
+
+func (p *parser) readNumber() int {
+	start := p.pos
+	for p.pos < len(p.raw) && unicode.IsDigit(rune(p.raw[p.pos])) {
+		p.pos++
+	}
+	if start == p.pos {
+		return 1
+	}
+	n, _ := strconv.Atoi(p.raw[start:p.pos])
+	if n < 1 {
+		return 1
+	}
+	return n
+}
+
+func (p *parser) readDice() (count, sides int, ok bool) {
+	saved := p.pos
+	count = p.readNumber()
+	if !p.next() || p.raw[p.pos] != 'd' {
+		p.pos = saved
+		return 0, 0, false
+	}
+	p.pos++
+	sides = p.readNumber()
 	if sides < 2 {
 		sides = 2
 	}
-	return count, sides, newPos, true
-}
-
-func parseNumber(s string, pos int) (val, newPos int) {
-	if pos >= len(s) || !unicode.IsDigit(rune(s[pos])) {
-		return 1, pos
-	}
-	end := pos
-	for end < len(s) && unicode.IsDigit(rune(s[end])) {
-		end++
-	}
-	n, _ := strconv.Atoi(s[pos:end])
-	if n < 1 {
-		n = 1
-	}
-	return n, end
-}
-
-func parseSign(s string, pos int) (sign int, newPos int, err error) {
-	if s[pos] == '+' {
-		return 1, pos + 1, nil
-	}
-	if s[pos] == '-' {
-		return -1, pos + 1, nil
-	}
-	return 0, pos, fmt.Errorf("caractere inesperado: %c", s[pos])
+	return count, sides, true
 }
