@@ -43,7 +43,8 @@ func DisplayItems(items []any) string {
 			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, v.Type)
 			lines = appendEnchants(lines, v.Enchantment)
 		case PotionResult:
-			lines = appendItemLine(lines, v.Potion.Name, v.Potion.Cost, v.Potion.Currency, v.Potion.Effect)
+			lines = appendItemLine(lines, v.Potion.Name, v.Potion.Cost, v.Potion.Currency, "")
+			lines = append(lines, styledLine{plain: "  efeito: " + v.Potion.Effect, styled: "  efeito: " + v.Potion.Effect})
 			if v.ColateralEffect != nil {
 				lines = appendStyledLine(lines, "  colateral: "+v.ColateralEffect.Description, boldYellow)
 			}

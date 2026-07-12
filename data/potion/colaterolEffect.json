@@ -1,18 +1,26 @@
 [
-	{
-		"description": "Enjoo por 1 hora",
-		"chance": 0.30
-	},
-	{
-		"description": "Tontura por 10 minutos",
-		"chance": 0.25
-	},
-	{
-		"description": "Pele azul por 1d4 horas",
-		"chance": 0.15
-	},
-	{
-		"description": "Alucinações leves por 30 minutos",
-		"chance": 0.20
-	}
+  {
+    "description": "Enjoo por 1 hora",
+    "chance": 0.3
+  },
+  {
+    "description": "Tontura por 10 minutos",
+    "chance": 0.25
+  },
+  {
+    "description": "Pele azul por 1d4 horas",
+    "chance": 0.15
+  },
+  {
+    "description": "Alucinações leves por 30 minutos",
+    "chance": 0.2
+  },
+  {
+    "description": "Peidos incontroláveis por 1 hora",
+    "chance": 0.15
+  },
+  {
+    "description": "Cabeça no formato de bolão por 1d4 dias",
+    "chance": 0.35
+  }
 ]
