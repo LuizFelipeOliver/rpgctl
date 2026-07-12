@@ -2,8 +2,10 @@ package loot
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 )
 
 type EnchantmentType bool
@@ -42,60 +44,14 @@ type LootTable struct {
 	ColateralEffects  []ColateralEffect
 }
 
-func NewLootTable(dataDir string) (*LootTable, error) {
-	weapons, err := LoadJSON[Weapon](dataDir + "/weapon/weapon.json")
+func RunLoot(args string) []LootTable {
+	n, err := strconv.Atoi(args)
 	if err != nil {
-		return nil, err
+		fmt.Errorf(err)
 	}
-
-	armors, err := LoadJSON[Armor](dataDir + "/armor/armor.json")
-	if err != nil {
-		return nil, err
-	}
-
-	accessories, err := LoadJSON[Accessory](dataDir + "/accessory/accessory.json")
-	if err != nil {
-		return nil, err
-	}
-
-	potions, err := LoadJSON[Potion](dataDir + "/potion/potion.json")
-	if err != nil {
-		return nil, err
-	}
-
-	weaponEnch, err := LoadJSON[Enchantment](dataDir + "/weapon/enchantment.json")
-	if err != nil {
-		return nil, err
-	}
-
-	armorEnch, err := LoadJSON[Enchantment](dataDir + "/armor/enchantment.json")
-	if err != nil {
-		return nil, err
-	}
-
-	accEnch, err := LoadJSON[Enchantment](dataDir + "/accessory/enchantment.json")
-	if err != nil {
-		return nil, err
-	}
-
-	colateral, err := LoadJSON[ColateralEffect](dataDir + "/potion/colaterolEffect.json")
-	if err != nil {
-		return nil, err
-	}
-
-	return &LootTable{
-		Weapons:           weapons,
-		Armors:            armors,
-		Accessories:       accessories,
-		Potions:           potions,
-		WeaponEnchants:    weaponEnch,
-		ArmorEnchants:     armorEnch,
-		AccessoryEnchants: accEnch,
-		ColateralEffects:  colateral,
-	}, nil
 }
 
-func (lt *LootTable) Generate(n int) []any {
+func (lt *LootTable) generate(n int) []any {
 	items := make([]any, 0, n)
 	for range n {
 		items = append(items, lt.randomItem())

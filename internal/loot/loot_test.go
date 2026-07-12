@@ -313,15 +313,32 @@ func TestGenerateReturnsValidTypes(t *testing.T) {
 
 func TestPickSingleEnchant(t *testing.T) {
 	enchants := []Enchantment{
-		{Title: "Unico", Type: Blessing, Chance: 1.0},
+		{Title: "Bless", Type: Blessing, Chance: 1.0},
+		{Title: "Curse", Type: Curse, Chance: 1.0},
 	}
 
-	e, ok := pickSingleEnchant(enchants)
-	if !ok {
-		t.Fatal("expected ok, got false")
+	gotBless := false
+	gotCurse := false
+	for range 100 {
+		e, ok := pickSingleEnchant(enchants)
+		if !ok {
+			continue
+		}
+		if e.Title == "Bless" {
+			gotBless = true
+		}
+		if e.Title == "Curse" {
+			gotCurse = true
+		}
+		if gotBless && gotCurse {
+			break
+		}
 	}
-	if e.Title != "Unico" {
-		t.Errorf("expected Unico, got %s", e.Title)
+	if !gotBless {
+		t.Error("never got a blessing")
+	}
+	if !gotCurse {
+		t.Error("never got a curse")
 	}
 }
 
