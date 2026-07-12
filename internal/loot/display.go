@@ -93,6 +93,10 @@ func appendEnchants(lines []styledLine, enchants []Enchantment) []styledLine {
 		}
 	}
 
+	if len(blessings) > 0 && len(curses) > 0 {
+		lines = append(lines, styledLine{plain: "", styled: ""})
+	}
+
 	if len(curses) > 0 {
 		lines = appendStyledLine(lines, "  maldições", boldRed)
 		for _, e := range curses {
