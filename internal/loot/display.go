@@ -5,43 +5,129 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
 )
 
+type styledLine struct {
+	plain  string
+	styled string
+}
+
 var (
-	blessStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00")).Italic(true)
-	curseStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Italic(true)
-	colateralStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00"))
-	itemStyle      = lipgloss.NewStyle().Bold(true)
-	metaStyle      = lipgloss.NewStyle().Faint(true)
+	green      = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00"))
+	red        = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000"))
+	yellow     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00"))
+	bold       = lipgloss.NewStyle().Bold(true)
+	faint      = lipgloss.NewStyle().Faint(true)
+	boldGreen  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF00"))
+	boldRed    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF0000"))
+	boldYellow = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
 )
 
 func DisplayItems(items []any) string {
-	var content strings.Builder
+	var allLines []styledLine
 
-	for i, item := range items {
-		if i > 0 {
-			content.WriteString("\n")
+	for _, item := range items {
+		if len(allLines) > 0 {
+			allLines = append(allLines, styledLine{plain: "─", styled: "─"})
 		}
 		switch v := item.(type) {
 		case Weapon:
-			content.WriteString(displayWeapon(v))
+			allLines = append(allLines, weaponLines(v)...)
 		case Armor:
-			content.WriteString(displayArmor(v))
+			allLines = append(allLines, armorLines(v)...)
 		case Accessory:
-			content.WriteString(displayAccessory(v))
+			allLines = append(allLines, accessoryLines(v)...)
 		case PotionResult:
-			content.WriteString(displayPotion(v))
+			allLines = append(allLines, potionLines(v)...)
 		}
 	}
 
-	return borderBox(content.String())
+	return borderBox(allLines)
 }
 
-func borderBox(content string) string {
-	lines := strings.Split(strings.TrimRight(content, "\n"), "\n")
+func weaponLines(w Weapon) []styledLine {
+	lines := []styledLine{
+		{
+			plain:  fmt.Sprintf("%s (%d %s)  %s %s", w.Name, w.Cost, w.Currency, w.Damage, w.DamageType),
+			styled: fmt.Sprintf("%s %s  %s", bold.Render(w.Name), faint.Render(fmt.Sprintf("(%d %s)", w.Cost, w.Currency)), faint.Render(fmt.Sprintf("%s %s", w.Damage, w.DamageType))),
+		},
+	}
+	lines = append(lines, enchantLines(w.Enchantment)...)
+	return lines
+}
+
+func armorLines(a Armor) []styledLine {
+	lines := []styledLine{
+		{
+			plain:  fmt.Sprintf("%s (%d %s)  CA %d", a.Name, a.Cost, a.Currency, a.ArmorBonus),
+			styled: fmt.Sprintf("%s %s  %s", bold.Render(a.Name), faint.Render(fmt.Sprintf("(%d %s)", a.Cost, a.Currency)), faint.Render(fmt.Sprintf("CA %d", a.ArmorBonus))),
+		},
+	}
+	lines = append(lines, enchantLines(a.Enchantment)...)
+	return lines
+}
+
+func accessoryLines(a Accessory) []styledLine {
+	lines := []styledLine{
+		{
+			plain:  fmt.Sprintf("%s (%d %s)  %s", a.Name, a.Cost, a.Currency, a.Type),
+			styled: fmt.Sprintf("%s %s  %s", bold.Render(a.Name), faint.Render(fmt.Sprintf("(%d %s)", a.Cost, a.Currency)), faint.Render(a.Type)),
+		},
+	}
+	lines = append(lines, enchantLines(a.Enchantment)...)
+	return lines
+}
+
+func potionLines(p PotionResult) []styledLine {
+	lines := []styledLine{
+		{
+			plain:  fmt.Sprintf("%s (%d %s)  %s", p.Potion.Name, p.Potion.Cost, p.Potion.Currency, p.Potion.Effect),
+			styled: fmt.Sprintf("%s %s  %s", bold.Render(p.Potion.Name), faint.Render(fmt.Sprintf("(%d %s)", p.Potion.Cost, p.Potion.Currency)), faint.Render(p.Potion.Effect)),
+		},
+	}
+	if p.ColateralEffect != nil {
+		l := "colateral: " + p.ColateralEffect.Description
+		lines = append(lines, styledLine{plain: "  " + l, styled: "  " + boldYellow.Render(l)})
+	}
+	return lines
+}
+
+func enchantLines(enchants []Enchantment) []styledLine {
+	var lines []styledLine
+	var blessings, curses []Enchantment
+
+	for _, e := range enchants {
+		if e.Type == Blessing {
+			blessings = append(blessings, e)
+		} else {
+			curses = append(curses, e)
+		}
+	}
+
+	if len(blessings) > 0 {
+		lines = append(lines, styledLine{plain: "  benções", styled: "  " + boldGreen.Render("benções")})
+		for _, e := range blessings {
+			lines = append(lines, styledLine{plain: "    titulo: " + e.Title, styled: "    " + green.Render("titulo: "+e.Title)})
+			lines = append(lines, styledLine{plain: "    descrição: " + e.Description, styled: "    " + green.Render("descrição: "+e.Description)})
+		}
+	}
+
+	if len(curses) > 0 {
+		lines = append(lines, styledLine{plain: "  maldições", styled: "  " + boldRed.Render("maldições")})
+		for _, e := range curses {
+			lines = append(lines, styledLine{plain: "    titulo: " + e.Title, styled: "    " + red.Render("titulo: "+e.Title)})
+			lines = append(lines, styledLine{plain: "    descrição: " + e.Description, styled: "    " + red.Render("descrição: "+e.Description)})
+		}
+	}
+
+	return lines
+}
+
+func borderBox(lines []styledLine) string {
 	max := 0
-	for _, line := range lines {
-		w := lipgloss.Width(line)
+	for _, l := range lines {
+		w := runewidth.StringWidth(l.plain)
 		if w > max {
 			max = w
 		}
@@ -49,69 +135,17 @@ func borderBox(content string) string {
 
 	var b strings.Builder
 	b.WriteString("╭" + strings.Repeat("─", max+2) + "╮\n")
-	for _, line := range lines {
-		w := lipgloss.Width(line)
-		padding := max - w
-		// Use strings.Builder for correct Unicode padding
-		padded := line + strings.Repeat(" ", padding)
-		b.WriteString("│ " + padded + " │\n")
+
+	for _, l := range lines {
+		if l.plain == "─" {
+			b.WriteString("├" + strings.Repeat("─", max+2) + "┤\n")
+			continue
+		}
+		w := runewidth.StringWidth(l.plain)
+		pad := max - w
+		b.WriteString("│ " + l.styled + strings.Repeat(" ", pad) + " │\n")
 	}
+
 	b.WriteString("╰" + strings.Repeat("─", max+2) + "╯\n")
 	return b.String()
-}
-
-func displayWeapon(w Weapon) string {
-	var b strings.Builder
-	b.WriteString(itemStyle.Render(w.Name) + " ")
-	b.WriteString(metaStyle.Render(fmt.Sprintf("%d %s", w.Cost, w.Currency)) + " ")
-	b.WriteString(metaStyle.Render(fmt.Sprintf("%s %s", w.Damage, w.DamageType)) + "\n")
-	for _, e := range w.Enchantment {
-		b.WriteString("  ")
-		b.WriteString(formatEnchant(e))
-	}
-	return b.String()
-}
-
-func displayArmor(a Armor) string {
-	var b strings.Builder
-	b.WriteString(itemStyle.Render(a.Name) + " ")
-	b.WriteString(metaStyle.Render(fmt.Sprintf("%d %s", a.Cost, a.Currency)) + " ")
-	b.WriteString(metaStyle.Render(fmt.Sprintf("CA %d", a.ArmorBonus)) + "\n")
-	for _, e := range a.Enchantment {
-		b.WriteString("  ")
-		b.WriteString(formatEnchant(e))
-	}
-	return b.String()
-}
-
-func displayAccessory(a Accessory) string {
-	var b strings.Builder
-	b.WriteString(itemStyle.Render(a.Name) + " ")
-	b.WriteString(metaStyle.Render(fmt.Sprintf("%d %s", a.Cost, a.Currency)) + " ")
-	b.WriteString(metaStyle.Render(a.Type) + "\n")
-	for _, e := range a.Enchantment {
-		b.WriteString("  ")
-		b.WriteString(formatEnchant(e))
-	}
-	return b.String()
-}
-
-func displayPotion(p PotionResult) string {
-	var b strings.Builder
-	b.WriteString(itemStyle.Render(p.Potion.Name) + " ")
-	b.WriteString(metaStyle.Render(fmt.Sprintf("%d %s", p.Potion.Cost, p.Potion.Currency)) + " ")
-	b.WriteString(metaStyle.Render(p.Potion.Effect) + "\n")
-	if p.ColateralEffect != nil {
-		b.WriteString("  ")
-		b.WriteString(colateralStyle.Render(p.ColateralEffect.Description) + "\n")
-	}
-	return b.String()
-}
-
-func formatEnchant(e Enchantment) string {
-	txt := fmt.Sprintf("%s: %s", e.Title, e.Description)
-	if e.Type == Blessing {
-		return blessStyle.Render(txt) + "\n"
-	}
-	return curseStyle.Render(txt) + "\n"
 }
