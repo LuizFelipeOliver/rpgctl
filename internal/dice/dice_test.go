@@ -15,11 +15,16 @@ func TestRoll(t *testing.T) {
 		{"2d6", false, 1, 0},
 		{"d20+1d4", false, 2, 0},
 		{"2d6+3", false, 1, 3},
-		{"d20-1d4", false, 2, 0},
 		{"d20+1d4+5", false, 2, 5},
 		{"3d8", false, 1, 0},
 		{"d6-2", false, 1, -2},
-		{"3+d20", false, 1, 3},
+		{"d20-3", false, 1, -3},
+		{"d20+1d4-2", false, 2, -2},
+
+		{"d20-1d4", true, 0, 0},
+		{"-1d4", true, 0, 0},
+		{"3+d20", true, 0, 0},
+		{"3", true, 0, 0},
 		{"", true, 0, 0},
 	}
 
@@ -78,29 +83,9 @@ func TestRoll_Range(t *testing.T) {
 	}
 }
 
-func TestSignedGroups(t *testing.T) {
-	result, err := Roll("d20-1d4")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Groups[0].Sign != 1 {
-		t.Errorf("first group sign = %d, want 1", result.Groups[0].Sign)
-	}
-	if result.Groups[1].Sign != -1 {
-		t.Errorf("second group sign = %d, want -1", result.Groups[1].Sign)
-	}
-}
-
-func TestModifierOnly(t *testing.T) {
-	result, err := Roll("5")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Modifier != 5 {
-		t.Errorf("modifier = %d, want 5", result.Modifier)
-	}
-	if result.Total != 5 {
-		t.Errorf("total = %d, want 5", result.Total)
+func TestDiceConstants(t *testing.T) {
+	if D4 != 4 || D6 != 6 || D8 != 8 || D10 != 10 || D12 != 12 || D20 != 20 || D100 != 100 {
+		t.Error("dice constants mismatch")
 	}
 }
 

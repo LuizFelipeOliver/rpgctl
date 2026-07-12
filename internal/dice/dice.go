@@ -40,7 +40,10 @@ func Roll(expr string) (*RollResult, error) {
 	}
 
 	p := &parser{expr: expr}
-	groups, modifier := p.parse()
+	groups, modifier, err := p.parse()
+	if err != nil {
+		return nil, err
+	}
 
 	result := &RollResult{
 		Expression: expr,
@@ -71,17 +74,11 @@ func (r *RollResult) String() string {
 		}
 		groupText := strings.Join(rollStrs, "+")
 
-		if g.Sign < 0 || g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
+		if g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
 			groupText = "(" + groupText + ")"
 		}
 
-		if g.Sign < 0 {
-			if len(parts) == 0 {
-				parts = append(parts, "-"+groupText)
-			} else {
-				parts = append(parts, "- "+groupText)
-			}
-		} else if len(parts) > 0 {
+		if len(parts) > 0 {
 			parts = append(parts, "+ "+groupText)
 		} else {
 			parts = append(parts, groupText)
@@ -112,7 +109,12 @@ type parser struct {
 	pos  int
 }
 
-func (p *parser) parse() (groups []Group, modifier int) {
+func (p *parser) parse() (groups []Group, modifier int, err error) {
+	groups, err = p.parseFirstGroup()
+	if err != nil {
+		return nil, 0, err
+	}
+
 	for p.pos < len(p.expr) {
 		sign := 1
 		if p.expr[p.pos] == '+' {
@@ -121,14 +123,15 @@ func (p *parser) parse() (groups []Group, modifier int) {
 		} else if p.expr[p.pos] == '-' {
 			sign = -1
 			p.pos++
+		} else {
+			return nil, 0, fmt.Errorf("caractere inesperado: %c", p.expr[p.pos])
 		}
 
-		start := p.pos
 		num := p.parseNumber()
 
 		if p.pos < len(p.expr) && p.expr[p.pos] == 'd' {
-			if start == p.pos {
-				num = 1
+			if sign < 0 {
+				return nil, 0, errors.New("dado negativo nao permitido")
 			}
 			p.pos++
 			sides := p.parseNumber()
@@ -138,13 +141,29 @@ func (p *parser) parse() (groups []Group, modifier int) {
 			groups = append(groups, Group{
 				Count: num,
 				Sides: sides,
-				Sign:  sign,
+				Sign:  1,
 			})
 		} else {
 			modifier += sign * num
 		}
 	}
-	return
+
+	return groups, modifier, nil
+}
+
+func (p *parser) parseFirstGroup() ([]Group, error) {
+	count := p.parseNumber()
+
+	if p.pos >= len(p.expr) || p.expr[p.pos] != 'd' {
+		return nil, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
+	}
+	p.pos++
+	sides := p.parseNumber()
+	if sides < 2 {
+		sides = 2
+	}
+
+	return []Group{{Count: count, Sides: sides, Sign: 1}}, nil
 }
 
 func (p *parser) parseNumber() int {
