@@ -14,11 +14,11 @@ type Armor struct {
 type Types string
 
 const (
-	LightArmor  Types = "Light Armor"
-	MediumArmor Types = "Medium Armor"
-	HeavyArmor  Types = "Heavy Armor"
-	Shield      Types = "Shield"
-	Wooden      Types = "Wooden"
+	LightArmor  Types = "Armadura Leve"
+	MediumArmor Types = "Armadura Média"
+	HeavyArmor  Types = "Armadura Pesada"
+	Shield      Types = "Escudo"
+	Wooden      Types = "Madeira"
 	Extras      Types = "Extras"
 )
 

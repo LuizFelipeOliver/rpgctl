@@ -4,27 +4,27 @@
 		"armor_bonus": 11,
 		"cost": 10,
 		"currency": "gp",
-		"type": "Light Armor"
+		"type": "Armadura Leve"
 	},
 	{
 		"name": "Gibão de Peles",
 		"armor_bonus": 12,
 		"cost": 15,
 		"currency": "gp",
-		"type": "Medium Armor"
+		"type": "Armadura Média"
 	},
 	{
 		"name": "Cota de Malha",
 		"armor_bonus": 16,
 		"cost": 75,
 		"currency": "gp",
-		"type": "Heavy Armor"
+		"type": "Armadura Pesada"
 	},
 	{
 		"name": "Escudo de Madeira",
 		"armor_bonus": 2,
 		"cost": 10,
 		"currency": "gp",
-		"type": "Shield"
+		"type": "Escudo"
 	}
 ]

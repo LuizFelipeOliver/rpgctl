@@ -16,27 +16,27 @@ type Weapon struct {
 type DamageTypes string
 
 const (
-	Bludgeoning DamageTypes = "bludgeoning"
-	Piercing    DamageTypes = "piercing"
-	Slashing    DamageTypes = "slashing"
+	Bludgeoning DamageTypes = "contusão"
+	Piercing    DamageTypes = "perfurante"
+	Slashing    DamageTypes = "cortante"
 )
 
 type Category string
 
 const (
-	Exotic  Category = "exotic"
-	Martial Category = "martial"
-	Simple  Category = "simple"
+	Exotic  Category = "exótica"
+	Martial Category = "marcial"
+	Simple  Category = "simples"
 )
 
 type Type string
 
 const (
-	OneHanded Type = "one-handed"
-	TwoHanded Type = "two-handed"
-	Light     Type = "light"
-	Ranged    Type = "ranged"
-	Unarmed   Type = "unarmed"
+	OneHanded Type = "uma-mão"
+	TwoHanded Type = "duas-mãos"
+	Light     Type = "leve"
+	Ranged    Type = "distância"
+	Unarmed   Type = "desarmado"
 )
 
 const (

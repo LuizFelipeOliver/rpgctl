@@ -2,64 +2,64 @@
 	{
 		"name": "Espada Curta",
 		"damage": "1d6",
-		"damage_type": "slashing",
+		"damage_type": "cortante",
 		"cost": 7,
 		"currency": "gp",
-		"category": "simple",
-		"type": "light"
+		"category": "simples",
+		"type": "leve"
 	},
 	{
 		"name": "Cimitarra",
 		"damage": "1d6",
-		"damage_type": "slashing",
+		"damage_type": "cortante",
 		"cost": 25,
 		"currency": "gp",
-		"category": "martial",
-		"type": "light"
+		"category": "marcial",
+		"type": "leve"
 	},
 	{
 		"name": "Maça",
 		"damage": "1d6",
-		"damage_type": "bludgeoning",
+		"damage_type": "contusão",
 		"cost": 5,
 		"currency": "gp",
-		"category": "simple",
-		"type": "one-handed"
+		"category": "simples",
+		"type": "uma-mão"
 	},
 	{
 		"name": "Espada Longa",
 		"damage": "1d8",
-		"damage_type": "slashing",
+		"damage_type": "cortante",
 		"cost": 15,
 		"currency": "gp",
-		"category": "martial",
-		"type": "one-handed"
+		"category": "marcial",
+		"type": "uma-mão"
 	},
 	{
 		"name": "Machado Grande",
 		"damage": "1d12",
-		"damage_type": "slashing",
+		"damage_type": "cortante",
 		"cost": 30,
 		"currency": "gp",
-		"category": "martial",
-		"type": "two-handed"
+		"category": "marcial",
+		"type": "duas-mãos"
 	},
 	{
 		"name": "Arco Curto",
 		"damage": "1d6",
-		"damage_type": "piercing",
+		"damage_type": "perfurante",
 		"cost": 25,
 		"currency": "gp",
-		"category": "simple",
-		"type": "ranged"
+		"category": "simples",
+		"type": "distância"
 	},
 	{
 		"name": "Soco Ingombrante",
 		"damage": "1d4",
-		"damage_type": "bludgeoning",
+		"damage_type": "contusão",
 		"cost": 0,
 		"currency": "gp",
-		"category": "simple",
-		"type": "unarmed"
+		"category": "simples",
+		"type": "desarmado"
 	}
 ]
