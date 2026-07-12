@@ -34,13 +34,16 @@ func DisplayItems(items []any) string {
 		}
 		switch v := item.(type) {
 		case Weapon:
-			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, fmt.Sprintf("%s %s", v.Damage, v.DamageType))
+			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, "")
+			lines = appendDetailLine(lines, fmt.Sprintf("%s %s · %s · %s", v.Damage, v.DamageType, v.Category, v.Type))
 			lines = appendEnchants(lines, v.Enchantment)
 		case Armor:
-			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, fmt.Sprintf("CA %d", v.ArmorBonus))
+			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, "")
+			lines = appendDetailLine(lines, fmt.Sprintf("CA %d · %s", v.ArmorBonus, v.Type))
 			lines = appendEnchants(lines, v.Enchantment)
 		case Accessory:
-			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, v.Type)
+			lines = appendItemLine(lines, v.Name, v.Cost, v.Currency, "")
+			lines = appendDetailLine(lines, v.Type)
 			lines = appendEnchants(lines, v.Enchantment)
 		case PotionResult:
 			lines = appendItemLine(lines, v.Potion.Name, v.Potion.Cost, v.Potion.Currency, "")
@@ -61,6 +64,10 @@ func appendItemLine(lines []styledLine, name string, cost int, currency, detail 
 		faint.Render(fmt.Sprintf("(%d %s)", cost, currency)),
 		faint.Render(detail))
 	return append(lines, styledLine{plain: plain, styled: styled})
+}
+
+func appendDetailLine(lines []styledLine, detail string) []styledLine {
+	return append(lines, styledLine{plain: "  " + detail, styled: "  " + faint.Render(detail)})
 }
 
 func appendStyledLine(lines []styledLine, text string, style lipgloss.Style) []styledLine {
