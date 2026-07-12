@@ -1,32 +1,28 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type State int
-
-const (
-	StateMenu State = iota
-	StateLoot
-	StateDice
-	StateInitiative
-	StateQuit
-)
-
 type Model struct {
-	state State
-	menu  MenuModel
-	loot  LootModel
+	activeTab int
+	width     int
+	height    int
+	countBuf  string
+	loot      LootModel
+	dice      DiceModel
 }
 
 func New() Model {
 	return Model{
-		state: StateMenu,
-		menu:  NewMenu(),
-		loot:  NewLootModel(),
+		activeTab: 0,
+		width:     80,
+		height:    24,
+		loot:      NewLootModel(),
+		dice:      NewDiceModel(),
 	}
 }
 
@@ -36,101 +32,108 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		}
-
-		switch m.state {
-		case StateMenu:
-			return m.updateMenu(msg)
-		case StateLoot:
-			return m.updateLoot(msg)
-		case StateDice, StateInitiative:
-			return m.updatePlaceholder(msg)
-		}
-	}
-	return m, nil
-}
-
-func (m Model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "j", "down":
-		if m.menu.cursor < len(m.menu.items)-1 {
-			m.menu.cursor++
-		}
-	case "k", "up":
-		if m.menu.cursor > 0 {
-			m.menu.cursor--
-		}
-	case "enter", " ":
-		m.state = m.menu.items[m.menu.cursor].state
-		if m.state == StateLoot {
-			m.loot.Init()
-		}
-		if m.state == StateQuit {
+		case "q":
 			return m, tea.Quit
+
+		case "h", "left":
+			if m.activeTab > 0 {
+				m.activeTab--
+				m.countBuf = ""
+			}
+			return m, nil
+
+		case "l", "right":
+			if m.activeTab < len(tabs)-1 {
+				m.activeTab++
+				m.countBuf = ""
+			}
+			return m, nil
 		}
-	case "1":
-		m.state = StateLoot
-		m.menu.cursor = 0
-		m.loot.Init()
-	case "2":
-		m.state = StateDice
-		m.menu.cursor = 1
-	case "3":
-		m.state = StateInitiative
-		m.menu.cursor = 2
-	case "4", "q":
-		return m, tea.Quit
+
+		switch m.activeTab {
+		case 0:
+			return m.updateLoot(msg), nil
+		case 1:
+			return m.updateDice(msg), nil
+		}
 	}
+
 	return m, nil
 }
 
-func (m Model) updateLoot(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) updateLoot(msg tea.KeyMsg) Model {
 	switch msg.String() {
+	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		m.countBuf += msg.String()
 	case "g":
-		m.loot.Generate()
-	case "esc", "q":
-		m.state = StateMenu
+		n := 5
+		if m.countBuf != "" {
+			if v, err := strconv.Atoi(m.countBuf); err == nil && v > 0 {
+				n = v
+			}
+			if n > 100 {
+				n = 100
+			}
+		}
+		m.countBuf = ""
+		m.loot.Generate(n)
+	default:
+		m.countBuf = ""
 	}
-	return m, nil
+	return m
 }
 
-func (m Model) updatePlaceholder(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "esc", "q":
-		m.state = StateMenu
-	}
-	return m, nil
+func (m Model) updateDice(msg tea.KeyMsg) Model {
+	m.dice = m.dice.Update(msg)
+	return m
 }
 
 func (m Model) View() string {
-	var s string
+	tabBar := renderTabs(m.activeTab, m.width)
+	content := m.renderContent()
+	footer := m.renderFooter()
 
-	switch m.state {
-	case StateMenu:
-		s = m.menu.View()
-	case StateLoot:
-		s = m.loot.View()
-	case StateDice:
-		s = m.placeholderView("Rolar Dados", "Em breve...")
-	case StateInitiative:
-		s = m.placeholderView("Iniciativa", "Em breve...")
-	case StateQuit:
-		return ""
+	tabLines := strings.Count(tabBar, "\n") + 1
+	contentLines := strings.Count(content, "\n") + 1
+	footerLines := strings.Count(footer, "\n") + 1
+
+	padding := m.height - tabLines - contentLines - footerLines
+	if padding < 0 {
+		padding = 0
 	}
 
-	return s + "\n"
+	return tabBar + "\n" + content + strings.Repeat("\n", padding) + "\n" + footer
 }
 
-func (m Model) placeholderView(title, text string) string {
-	var b strings.Builder
-	b.WriteString(lootTitle.Render(title))
-	b.WriteString("\n\n")
-	b.WriteString(text)
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("esc/q: voltar"))
-	return b.String()
+func (m Model) renderContent() string {
+	switch m.activeTab {
+	case 0:
+		return m.renderLootContent()
+	case 1:
+		return m.renderDiceContent()
+	case 2:
+		return "Em breve..."
+	}
+	return ""
+}
+
+func (m Model) renderFooter() string {
+	switch m.activeTab {
+	case 0:
+		return footerStyle.Render("h/l: abas  •  [N]g: gerar  •  q: sair")
+	case 1:
+		return footerStyle.Render("h/l: abas  •  d: dados  •  q: sair")
+	case 2:
+		return footerStyle.Render("h/l: abas  •  q: sair")
+	}
+	return ""
 }
