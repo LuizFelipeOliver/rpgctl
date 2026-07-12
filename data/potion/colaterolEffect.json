@@ -22,5 +22,29 @@
   {
     "description": "Cabeça no formato de bolão por 1d4 dias",
     "chance": 0.35
+  },
+  {
+    "description": "Pés grandes por 1d6 horas",
+    "chance": 0.15
+  },
+  {
+    "description": "Sono intenso por 1d4 horas",
+    "chance": 0.13
+  },
+  {
+    "description": "Fome incontrollável por 1d4 horas",
+    "chance": 0.17
+  },
+  {
+    "description": "Tontura ao correr - desvantagem em testes de agilidade por 1 dia",
+    "chance": 0.05
+  },
+  {
+    "description": "Mãos trêmulas - desvantagem em ataques por 1 dia",
+    "chance": 0.05
+  },
+  {
+    "deScription": "Cabeça brilhante por 1d8 dias",
+    "chance": 0.05
   }
 ]

@@ -1,9 +1,27 @@
 [
 	{
-		"name": "Poção de Cura",
+		"name": "Poção de Cura Pequena",
+		"cost": 25,
+		"currency": "gp",
+		"effect": "Recupera 1d4+2 PV"
+	},
+	{
+		"name": "Poção de Cura Média",
 		"cost": 50,
 		"currency": "gp",
 		"effect": "Recupera 2d4+2 PV"
+	},
+	{
+		"name": "Poção de Cura Grande",
+		"cost": 150,
+		"currency": "gp",
+		"effect": "Recupera 4d4+4 PV"
+	},
+	{
+		"name": "Poção de Cura Alta",
+		"cost": 450,
+		"currency": "gp",
+		"effect": "Recupera 8d4+8 PV"
 	},
 	{
 		"name": "Poção de Invisibilidade",
