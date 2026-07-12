@@ -28,9 +28,7 @@ var lootCmd = &cobra.Command{
 		}
 
 		items := lt.Generate(n)
-		for _, item := range items {
-			fmt.Printf("%+v\n", item)
-		}
+		fmt.Print(loot.DisplayItems(items))
 		return nil
 	},
 }
