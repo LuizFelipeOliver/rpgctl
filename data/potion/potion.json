@@ -40,5 +40,35 @@
 		"cost": 80,
 		"currency": "gp",
 		"effect": "Respirar debaixo d'água por 1 hora"
+	},
+	{
+		"name": "Poção de Resistência ao Fogo",
+		"cost": 100,
+		"currency": "gp",
+		"effect": "Resistência a dano de fogo por 3 horas"
+	},
+	{
+		"name": "Poção de Resistência ao Gelo",
+		"cost": 100,
+		"currency": "gp",
+		"effect": "Resistência a dano de gelo por 3 horas"
+	},
+	{
+		"name": "Poção de Resistência Elétrica",
+		"cost": 100,
+		"currency": "gp",
+		"effect": "Resistência a dano elétrico por 3 horas"
+	},
+	{
+		"name": "Poção de Resistência a Ácido",
+		"cost": 100,
+		"currency": "gp",
+		"effect": "Resistência a dano ácido por 3 horas"
+	},
+	{
+		"name": "Poção de Resistência a Veneno",
+		"cost": 100,
+		"currency": "gp",
+		"effect": "Resistência a dano de veneno por 3 horas"
 	}
 ]
