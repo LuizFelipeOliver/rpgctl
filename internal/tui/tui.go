@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mattn/go-runewidth"
 )
 
 type Model struct {
@@ -14,6 +15,8 @@ type Model struct {
 	countBuf  string
 	loot      LootModel
 	dice      DiceModel
+	monster   MonsterModel
+	init      InitiativeModel
 }
 
 func New() Model {
@@ -23,6 +26,8 @@ func New() Model {
 		height:    24,
 		loot:      NewLootModel(),
 		dice:      NewDiceModel(),
+		monster:   NewMonsterModel(),
+		init:      NewInitiativeModel(),
 	}
 }
 
@@ -35,6 +40,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.monster.SetTableHeight(msg.Height)
+		m.init.SetTableHeight(msg.Height)
 		return m, nil
 
 	case tea.KeyMsg:
@@ -64,6 +71,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateLoot(msg), nil
 		case 1:
 			return m.updateDice(msg), nil
+		case 2:
+			return m.updateMonster(msg), nil
+		case 3:
+			return m.updateInitiative(msg), nil
 		}
 	}
 
@@ -102,6 +113,15 @@ func (m Model) View() string {
 	content := m.renderContent()
 	footer := m.renderFooter()
 
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		lw := runewidth.StringWidth(line)
+		if pad := m.width - lw; pad > 0 {
+			lines[i] = line + strings.Repeat(" ", pad)
+		}
+	}
+	content = strings.Join(lines, "\n")
+
 	tabLines := strings.Count(tabBar, "\n") + 1
 	contentLines := strings.Count(content, "\n") + 1
 	footerLines := strings.Count(footer, "\n") + 1
@@ -121,19 +141,36 @@ func (m Model) renderContent() string {
 	case 1:
 		return m.renderDiceContent()
 	case 2:
-		return "Em breve..."
+		return m.renderMonsterContent()
+	case 3:
+		return m.renderInitiativeContent()
 	}
 	return ""
 }
 
 func (m Model) renderFooter() string {
+	var text string
 	switch m.activeTab {
 	case 0:
-		return footerStyle.Render("h/l: abas  •  [N]g: gerar  •  q: sair")
+		text = "h/l: abas  •  [N]g: gerar  •  q: sair"
 	case 1:
-		return footerStyle.Render("h/l: abas  •  d: dados  •  q: sair")
+		text = "h/l: abas  •  d: dados  •  q: sair"
 	case 2:
-		return footerStyle.Render("h/l: abas  •  q: sair")
+		if m.monster.detail != nil {
+			text = "h/l: abas  •  esc: voltar  •  ↑↓: rolar  •  i: add iniciativa  •  q: sair"
+		} else {
+			text = "h/l: abas  •  digitar: buscar  •  ↑↓: navegar  •  enter: detalhes  •  q: sair"
+		}
+	case 3:
+		if m.init.addMode > 0 || m.init.showDetail {
+			text = "h/l: abas  •  esc: voltar  •  q: sair"
+		} else {
+			text = "h/l: abas  •  a: add  •  d: delete  •  n/p: turno  •  enter: detalhes  •  r: reset  •  q: sair"
+		}
 	}
-	return ""
+	tw := runewidth.StringWidth(text)
+	if pad := m.width - tw; pad > 0 {
+		text += strings.Repeat(" ", pad)
+	}
+	return footerStyle.Render(text)
 }

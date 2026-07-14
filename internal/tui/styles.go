@@ -38,6 +38,5 @@ var (
 			BorderBottom(true).
 			BorderLeft(true).
 			BorderRight(true).
-			Padding(0, 1).
-			Width(20)
+			Padding(0, 1)
 )

@@ -1,30 +1,50 @@
 package tui
 
 import (
+	"strconv"
 	"strings"
 	"unicode"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
 	"rpg-tui/internal/dice"
 )
 
 type DiceModel struct {
 	showPopup bool
-	input     string
+	input     textinput.Model
 	result    string
 	hasError  bool
 }
 
 func NewDiceModel() DiceModel {
-	return DiceModel{}
+	ti := textinput.New()
+	ti.Placeholder = "ex: 2d20+3"
+	ti.Validate = func(s string) error {
+		for _, r := range s {
+			if !unicode.IsDigit(r) && r != 'd' && r != '+' && r != '-' && r != ' ' {
+				return errInvalidChar
+			}
+		}
+		return nil
+	}
+	return DiceModel{input: ti}
 }
+
+var errInvalidChar = &invalidCharError{}
+
+type invalidCharError struct{}
+
+func (e *invalidCharError) Error() string { return "invalid character" }
 
 func (d DiceModel) Update(msg tea.KeyMsg) DiceModel {
 	if !d.showPopup {
 		if msg.String() == "d" {
 			d.showPopup = true
-			d.input = ""
+			d.input.SetValue("")
+			d.input.Focus()
 		}
 		return d
 	}
@@ -32,36 +52,25 @@ func (d DiceModel) Update(msg tea.KeyMsg) DiceModel {
 	switch msg.String() {
 	case "esc":
 		d.showPopup = false
+		d.input.Blur()
 	case "enter":
 		d.roll()
-	case "backspace":
-		if len(d.input) > 0 {
-			d.input = d.input[:len(d.input)-1]
-		}
 	default:
-		if isDiceChar(msg.String()) {
-			d.input += msg.String()
-		}
+		var cmd tea.Cmd
+		d.input, cmd = d.input.Update(msg)
+		_ = cmd
 	}
 	return d
 }
 
-func isDiceChar(s string) bool {
-	if len(s) != 1 {
-		return false
-	}
-	c := rune(s[0])
-	return unicode.IsDigit(c) || c == 'd' || c == '+' || c == '-'
-}
-
 func (d *DiceModel) roll() {
-	r, err := dice.Roll(d.input)
+	r, err := dice.Rolar(d.input.Value())
 	if err != nil {
-		d.result = "Formato invalido. Use NdS ou NdS+M"
+		d.result = "Formato invalido. Ex: d20 + 1 + d3"
 		d.hasError = true
 		return
 	}
-	d.result = r.String()
+	d.result = r.Detalhes + " = " + strconv.Itoa(r.Total)
 	d.hasError = false
 }
 
@@ -93,11 +102,7 @@ func (m Model) renderDicePopup() string {
 	content.WriteString(popupTitle.Render("Rolar Dados"))
 	content.WriteString("\n\n")
 
-	inputDisplay := m.dice.input
-	if inputDisplay == "" {
-		inputDisplay = "ex: 2d20+3"
-	}
-	content.WriteString(inputBorder.Render(inputDisplay))
+	content.WriteString(inputBorder.Render(m.dice.input.View()))
 	content.WriteString("\n\n")
 
 	if m.dice.result != "" {

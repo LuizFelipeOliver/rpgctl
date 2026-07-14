@@ -10,7 +10,7 @@ import (
 
 var rollCmd = &cobra.Command{
 	Use:                "roll <expressao>",
-	Short:              "Rola dados. Ex: d20+1d4, 2d6+3",
+	Short:              "Rola dados. Ex: \"d20 + 1 + d3\", \"2d6\"",
 	DisableFlagParsing: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		for _, a := range args {
@@ -20,11 +20,11 @@ var rollCmd = &cobra.Command{
 		}
 
 		expr := strings.Join(args, " ")
-		result, err := dice.Roll(expr)
+		result, err := dice.Rolar(expr)
 		if err != nil {
 			return fmt.Errorf("erro: %w", err)
 		}
-		fmt.Println(result)
+		fmt.Printf("%s = %d\n", result.Detalhes, result.Total)
 		return nil
 	},
 }

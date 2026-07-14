@@ -1,115 +1,183 @@
 package dice
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 )
 
-func TestRoll(t *testing.T) {
-	tests := []struct {
-		expr      string
-		err       bool
-		numGroups int
-		modifier  int
-	}{
-		{"d20", false, 1, 0},
-		{"2d6", false, 1, 0},
-		{"d20+1d4", false, 2, 0},
-		{"2d6+3", false, 1, 3},
-		{"d20+1d4+5", false, 2, 5},
-		{"3d8", false, 1, 0},
-		{"d6-2", false, 1, -2},
-		{"d20-3", false, 1, -3},
-		{"d20+1d4-2", false, 2, -2},
-		{"d1", false, 1, 0},
-		{"d20-1d4", false, 2, 0},
-		{"-1d4", false, 1, 0},
-		{"-d24+d4", false, 2, 0},
-		{"d20-d8+2", false, 2, 2},
+func TestRollDie(t *testing.T) {
+	v, err := RollDie(20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v < 1 || v > 20 {
+		t.Errorf("RollDie(20) = %d, fora do intervalo [1,20]", v)
+	}
+}
 
-		{"3+d20", true, 0, 0},
-		{"3", true, 0, 0},
+func TestRollDie_Invalid(t *testing.T) {
+	_, err := RollDie(0)
+	if err == nil {
+		t.Error("RollDie(0): expected error")
+	}
+	_, err = RollDie(-1)
+	if err == nil {
+		t.Error("RollDie(-1): expected error")
+	}
+}
+
+func TestRollNotation(t *testing.T) {
+	tests := []struct {
+		expr    string
+		err     bool
+		min, max int
+	}{
+		{"d20", false, 1, 20},
+		{"2d6", false, 2, 12},
+		{"1d4", false, 1, 4},
+		{"d1", false, 1, 1},
 		{"", true, 0, 0},
+		{"abc", true, 0, 0},
+		{"0d6", true, 0, 0},
+		{"d0", true, 0, 0},
+		{"-d6", true, 0, 0},
 	}
 
 	for _, tt := range tests {
-		result, err := Roll(tt.expr)
+		result, err := RollNotation(tt.expr)
 		if tt.err {
 			if err == nil {
-				t.Errorf("Roll(%q): expected error", tt.expr)
+				t.Errorf("RollNotation(%q): expected error, got %d", tt.expr, result)
 			}
 			continue
 		}
 		if err != nil {
-			t.Errorf("Roll(%q): unexpected error: %v", tt.expr, err)
+			t.Errorf("RollNotation(%q): unexpected error: %v", tt.expr, err)
 			continue
 		}
-		if len(result.Groups) != tt.numGroups {
-			t.Errorf("Roll(%q): got %d groups, want %d", tt.expr, len(result.Groups), tt.numGroups)
-		}
-		if result.Modifier != tt.modifier {
-			t.Errorf("Roll(%q): got modifier %d, want %d", tt.expr, result.Modifier, tt.modifier)
-		}
-
-		for _, g := range result.Groups {
-			if len(g.Rolls) != g.Count {
-				t.Errorf("Roll(%q): group got %d rolls, want %d", tt.expr, len(g.Rolls), g.Count)
-			}
-			for _, r := range g.Rolls {
-				if r < 1 || r > g.Sides {
-					t.Errorf("Roll(%q): roll %d out of range [1,%d]", tt.expr, r, g.Sides)
-				}
-			}
-		}
-
-		expectedTotal := result.Modifier
-		for _, g := range result.Groups {
-			for _, r := range g.Rolls {
-				expectedTotal += g.Sign * r
-			}
-		}
-		if result.Total != expectedTotal {
-			t.Errorf("Roll(%q): total %d != expected %d", tt.expr, result.Total, expectedTotal)
+		if result < tt.min || result > tt.max {
+			t.Errorf("RollNotation(%q) = %d, fora do intervalo [%d,%d]", tt.expr, result, tt.min, tt.max)
 		}
 	}
 }
 
-func TestRoll_Range(t *testing.T) {
+func TestRollNotation_Range(t *testing.T) {
 	const iterations = 100
 	for range iterations {
-		result, err := Roll("2d6+3")
+		result, err := RollNotation("2d6")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if result.Total < 5 || result.Total > 15 {
-			t.Errorf("2d6+3 total %d out of range [5,15]", result.Total)
+		if result < 2 || result > 12 {
+			t.Errorf("2d6 = %d, fora do intervalo [2,12]", result)
 		}
-	}
-}
-
-func TestDiceConstants(t *testing.T) {
-	if D4 != 4 || D6 != 6 || D8 != 8 || D10 != 10 || D12 != 12 || D20 != 20 || D100 != 100 {
-		t.Error("dice constants mismatch")
 	}
 }
 
 func TestD1(t *testing.T) {
-	result, err := Roll("d1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Total != 1 {
-		t.Errorf("d1 total = %d, want 1", result.Total)
+	for range 10 {
+		result, err := RollNotation("d1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result != 1 {
+			t.Errorf("d1 = %d, want 1", result)
+		}
 	}
 }
 
-func TestStringFormat(t *testing.T) {
-	result, err := Roll("d20")
+func TestRolar_DiceOnly(t *testing.T) {
+	for range 10 {
+		r, err := Rolar("d20")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.Total < 1 || r.Total > 20 {
+			t.Errorf("d20 total=%d, fora [1,20]", r.Total)
+		}
+		if !strings.Contains(r.Detalhes, strconv.Itoa(r.Total)) {
+			t.Errorf("detalhes=%q nao contem total=%d", r.Detalhes, r.Total)
+		}
+	}
+}
+
+func TestRolar_DicePlusMod(t *testing.T) {
+	for range 10 {
+		r, err := Rolar("d20 + 5")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.Total < 6 || r.Total > 25 {
+			t.Errorf("d20+5 total=%d, fora [6,25]", r.Total)
+		}
+		if !strings.Contains(r.Detalhes, " + 5") {
+			t.Errorf("detalhes=%q deve conter \" + 5\"", r.Detalhes)
+		}
+	}
+}
+
+func TestRolar_DiceMinusMod(t *testing.T) {
+	for range 10 {
+		r, err := Rolar("d20 - 3")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.Total < -2 || r.Total > 17 {
+			t.Errorf("d20-3 total=%d, fora [-2,17]", r.Total)
+		}
+		if !strings.Contains(r.Detalhes, " - 3") {
+			t.Errorf("detalhes=%q deve conter \" - 3\"", r.Detalhes)
+		}
+	}
+}
+
+func TestRolar_MultipleTerms(t *testing.T) {
+	for range 10 {
+		r, err := Rolar("d20 + 1 + d3")
+		if err != nil {
+			t.Fatal(err)
+		}
+		parts := strings.Split(r.Detalhes, " + ")
+		if len(parts) != 3 {
+			t.Errorf("detalhes=%q deve ter 3 partes separadas por \" + \"", r.Detalhes)
+		}
+	}
+}
+
+func TestRolar_PureNumbers(t *testing.T) {
+	r, err := Rolar("5 + 3")
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := result.String()
-	if result.Total < 1 || result.Total > 20 {
-		t.Errorf("d20 total %d out of range", result.Total)
+	if r.Total != 8 {
+		t.Errorf("5+3 total=%d, want 8", r.Total)
 	}
-	_ = s
+	if r.Detalhes != "5 + 3" {
+		t.Errorf("detalhes=%q, want \"5 + 3\"", r.Detalhes)
+	}
+}
+
+func TestRolar_Subtrai(t *testing.T) {
+	r, err := Rolar("10 - 3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Total != 7 {
+		t.Errorf("10-3 total=%d, want 7", r.Total)
+	}
+	if r.Detalhes != "10 - 3" {
+		t.Errorf("detalhes=%q, want \"10 - 3\"", r.Detalhes)
+	}
+}
+
+func TestRolar_Error(t *testing.T) {
+	_, err := Rolar("")
+	if err == nil {
+		t.Error("Rolar(\"\"): expected error")
+	}
+	_, err = Rolar("d20 + abc")
+	if err == nil {
+		t.Error("Rolar(\"d20 + abc\"): expected error")
+	}
 }

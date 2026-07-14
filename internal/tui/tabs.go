@@ -13,6 +13,7 @@ type Tab struct {
 var tabs = []Tab{
 	{Name: "Loot"},
 	{Name: "Dados"},
+	{Name: "Monsters"},
 	{Name: "Iniciativa"},
 }
 

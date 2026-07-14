@@ -6,140 +6,107 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
-const (D4, D6, D8, D10, D12, D20, D100 = 4, 6, 8, 10, 12, 20, 100)
-
-type Group struct {
-	Count, Sides int
-	Rolls        []int
-	Sign         int
+func RollDie(sides int) (int, error) {
+	if sides < 1 {
+		return 0, errors.New("numero de faces invalido")
+	}
+	return rand.Intn(sides) + 1, nil
 }
 
-type RollResult struct {
-	Expression      string
-	Groups          []Group
-	Modifier, Total int
+type RolarResultado struct {
+	Detalhes string
+	Total    int
 }
 
-func Roll(expr string) (*RollResult, error) {
-	expr = strings.TrimSpace(expr)
-	if expr == "" {
+func Rolar(expressao string) (*RolarResultado, error) {
+	expressao = strings.TrimSpace(expressao)
+	if expressao == "" {
 		return nil, errors.New("expressao vazia")
 	}
 
-	groups, mod, err := parse(expr)
-	if err != nil {
-		return nil, err
+	tokens := strings.Fields(expressao)
+	if len(tokens) == 0 {
+		return nil, errors.New("expressao vazia")
 	}
 
-	r := &RollResult{Expression: expr, Groups: groups, Modifier: mod}
-	for i := range r.Groups {
-		g := &r.Groups[i]
-		for range g.Count {
-			v := rand.Intn(g.Sides) + 1
-			g.Rolls = append(g.Rolls, v)
-			r.Total += g.Sign * v
-		}
-	}
-	r.Total += mod
-	return r, nil
-}
+	var detalhes []string
+	total := 0
+	sinal := 1
 
-func (r *RollResult) String() string {
-	parts := make([]string, 0, len(r.Groups))
-	for _, g := range r.Groups {
-		rolls := make([]string, len(g.Rolls))
-		for i, v := range g.Rolls {
-			rolls[i] = strconv.Itoa(v)
-		}
-		s := strings.Join(rolls, "+")
-
-		if g.Sign < 0 || g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
-			s = "(" + s + ")"
-		}
-		if g.Sign < 0 {
-			if len(parts) == 0 {
-				parts = append(parts, "-"+s)
+	for _, tok := range tokens {
+		switch tok {
+		case "+":
+			sinal = 1
+		case "-":
+			sinal = -1
+		default:
+			var v int
+			if strings.Contains(tok, "d") {
+				var err error
+				v, err = RollNotation(tok)
+				if err != nil {
+					return nil, err
+				}
 			} else {
-				parts = append(parts, "- "+s)
+				n, err := strconv.Atoi(tok)
+				if err != nil {
+					return nil, fmt.Errorf("token invalido: %s", tok)
+				}
+				v = n
 			}
-		} else if len(parts) > 0 {
-			parts = append(parts, "+ "+s)
-		} else {
-			parts = append(parts, s)
+
+			if sinal < 0 {
+				detalhes = append(detalhes, "- "+strconv.Itoa(v))
+			} else if len(detalhes) > 0 {
+				detalhes = append(detalhes, "+ "+strconv.Itoa(v))
+			} else {
+				detalhes = append(detalhes, strconv.Itoa(v))
+			}
+			total += sinal * v
+			sinal = 1
 		}
 	}
-	if r.Modifier != 0 {
-		if r.Modifier > 0 {
-			parts = append(parts, "+ "+strconv.Itoa(r.Modifier))
-		} else {
-			parts = append(parts, "- "+strconv.Itoa(-r.Modifier))
-		}
-	}
-	return strings.Join(parts, " ") + " = " + strconv.Itoa(r.Total)
+
+	return &RolarResultado{
+		Detalhes: strings.Join(detalhes, " "),
+		Total:    total,
+	}, nil
 }
 
-func parse(s string) ([]Group, int, error) {
-	sign := 1
-	pos := 0
-	first := true
-
-	var groups []Group
-	mod := 0
-
-	for pos < len(s) {
-		if first {
-			if s[pos] == '+' {
-				pos++
-			} else if s[pos] == '-' {
-				sign = -1
-				pos++
-			}
-		} else {
-			switch s[pos] {
-			case '+':
-				sign = 1
-				pos++
-			case '-':
-				sign = -1
-				pos++
-			default:
-				return nil, 0, fmt.Errorf("caractere inesperado: %c", s[pos])
-			}
-		}
-
-		start := pos
-		for pos < len(s) && unicode.IsDigit(rune(s[pos])) {
-			pos++
-		}
-		n := 1
-		if pos > start {
-			n, _ = strconv.Atoi(s[start:pos])
-		}
-
-		if pos < len(s) && s[pos] == 'd' {
-			pos++
-			start = pos
-			for pos < len(s) && unicode.IsDigit(rune(s[pos])) {
-				pos++
-			}
-			sides := 1
-			if pos > start {
-				sides, _ = strconv.Atoi(s[start:pos])
-			}
-			groups = append(groups, Group{Count: n, Sides: sides, Sign: sign})
-			first = false
-		} else if first {
-			return nil, 0, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
-		} else {
-			mod += sign * n
-		}
+func RollNotation(notacao string) (int, error) {
+	notacao = strings.TrimSpace(notacao)
+	if notacao == "" {
+		return 0, errors.New("notacao vazia")
 	}
 
-	if first {
-		return nil, 0, errors.New("expressao vazia")
+	parts := strings.SplitN(notacao, "d", 2)
+	if len(parts) != 2 {
+		return 0, errors.New("formato invalido, use NdS (ex: 2d6, d20)")
 	}
-	return groups, mod, nil
+
+	quantityDice := 1
+	if parts[0] != "" {
+		n, err := strconv.Atoi(parts[0])
+		if err != nil || n < 1 {
+			return 0, errors.New("numero de dados invalido")
+		}
+		quantityDice = n
+	}
+
+	sides, err := strconv.Atoi(parts[1])
+	if err != nil || sides < 1 {
+		return 0, errors.New("numero de faces invalido")
+	}
+
+	total := 0
+	for range quantityDice {
+		v, err := RollDie(sides)
+		if err != nil {
+			return 0, err
+		}
+		total += v
+	}
+	return total, nil
 }
