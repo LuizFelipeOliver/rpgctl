@@ -23,6 +23,7 @@ type Group struct {
 	Count int
 	Sides int
 	Rolls []int
+	Sign  int
 }
 
 type RollResult struct {
@@ -54,7 +55,7 @@ func Roll(expr string) (*RollResult, error) {
 		for range g.Count {
 			roll := rand.Intn(g.Sides) + 1
 			g.Rolls = append(g.Rolls, roll)
-			result.Total += roll
+			result.Total += g.Sign * roll
 		}
 	}
 	result.Total += modifier
@@ -72,11 +73,17 @@ func (r *RollResult) String() string {
 		}
 		text := strings.Join(rolls, "+")
 
-		if g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
+		if g.Sign < 0 || g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
 			text = "(" + text + ")"
 		}
 
-		if len(parts) > 0 {
+		if g.Sign < 0 {
+			if len(parts) == 0 {
+				parts = append(parts, "-"+text)
+			} else {
+				parts = append(parts, "- "+text)
+			}
+		} else if len(parts) > 0 {
 			parts = append(parts, "+ "+text)
 		} else {
 			parts = append(parts, text)
@@ -101,25 +108,33 @@ func (r *RollResult) String() string {
 func parseExpr(s string) ([]Group, int, error) {
 	p := &parser{raw: s}
 
+	sign := 1
+	if p.next() {
+		switch p.raw[p.pos] {
+		case '+':
+			p.pos++
+		case '-':
+			sign = -1
+			p.pos++
+		}
+	}
+
 	count, sides, ok := p.readDice()
 	if !ok {
 		return nil, 0, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
 	}
 
-	groups := []Group{{Count: count, Sides: sides}}
+	groups := []Group{{Count: count, Sides: sides, Sign: sign}}
 	modifier := 0
 
 	for p.next() {
-		sign := p.readSign()
+		sign = p.readSign()
 		if p.err != nil {
 			return nil, 0, p.err
 		}
 
 		if count, sides, ok = p.readDice(); ok {
-			if sign < 0 {
-				return nil, 0, errors.New("dado negativo nao permitido")
-			}
-			groups = append(groups, Group{Count: count, Sides: sides})
+			groups = append(groups, Group{Count: count, Sides: sides, Sign: sign})
 		} else {
 			modifier += sign * p.readNumber()
 		}
@@ -176,8 +191,8 @@ func (p *parser) readDice() (count, sides int, ok bool) {
 	}
 	p.pos++
 	sides = p.readNumber()
-	if sides < 2 {
-		sides = 2
+	if sides < 1 {
+		sides = 1
 	}
 	return count, sides, true
 }

@@ -20,9 +20,12 @@ func TestRoll(t *testing.T) {
 		{"d6-2", false, 1, -2},
 		{"d20-3", false, 1, -3},
 		{"d20+1d4-2", false, 2, -2},
+		{"d1", false, 1, 0},
+		{"d20-1d4", false, 2, 0},
+		{"-1d4", false, 1, 0},
+		{"-d24+d4", false, 2, 0},
+		{"d20-d8+2", false, 2, 2},
 
-		{"d20-1d4", true, 0, 0},
-		{"-1d4", true, 0, 0},
 		{"3+d20", true, 0, 0},
 		{"3", true, 0, 0},
 		{"", true, 0, 0},
@@ -61,7 +64,7 @@ func TestRoll(t *testing.T) {
 		expectedTotal := result.Modifier
 		for _, g := range result.Groups {
 			for _, r := range g.Rolls {
-				expectedTotal += r
+				expectedTotal += g.Sign * r
 			}
 		}
 		if result.Total != expectedTotal {
@@ -86,6 +89,16 @@ func TestRoll_Range(t *testing.T) {
 func TestDiceConstants(t *testing.T) {
 	if D4 != 4 || D6 != 6 || D8 != 8 || D10 != 10 || D12 != 12 || D20 != 20 || D100 != 100 {
 		t.Error("dice constants mismatch")
+	}
+}
+
+func TestD1(t *testing.T) {
+	result, err := Roll("d1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Total != 1 {
+		t.Errorf("d1 total = %d, want 1", result.Total)
 	}
 }
 
