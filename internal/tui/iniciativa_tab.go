@@ -29,11 +29,13 @@ type InitiativeModel struct {
 	current        int
 	round          int
 	addMode        int
+	healMode       int
 	showDetail     bool
 	detail         *monster.Monster
 	detailCombat   *Combatant
 	pendingMonster *monster.Monster
 	inputs         [4]textinput.Model
+	healInput      textinput.Model
 	tbl            table.Model
 }
 
@@ -97,6 +99,9 @@ func digitOptional(s string) error {
 }
 
 func NewInitiativeModel() InitiativeModel {
+	hi := textinput.New()
+	hi.Placeholder = "0"
+	hi.Validate = digitOptional
 	return InitiativeModel{
 		inputs: [4]textinput.Model{
 			newWizardInput("Name...", nil),
@@ -104,7 +109,8 @@ func NewInitiativeModel() InitiativeModel {
 			newWizardInput("HP (optional)...", digitOptional),
 			newWizardInput("AC (optional)...", digitOptional),
 		},
-		tbl: newInitTable(),
+		healInput: hi,
+		tbl:       newInitTable(),
 	}
 }
 
@@ -180,6 +186,7 @@ func (m *InitiativeModel) reset() {
 	m.current = 0
 	m.round = 0
 	m.addMode = 0
+	m.healMode = 0
 	m.showDetail = false
 	m.detail = nil
 	m.detailCombat = nil
@@ -215,6 +222,9 @@ func (m *InitiativeModel) prevTurn() {
 func (m Model) updateInitiative(msg tea.KeyMsg) Model {
 	if m.init.addMode > 0 {
 		return m.updateInitWizard(msg)
+	}
+	if m.init.healMode > 0 {
+		return m.updateHealPopup(msg)
 	}
 	if m.init.showDetail {
 		return m.updateInitDetail(msg)
@@ -274,12 +284,43 @@ func (m Model) updateInitDetail(msg tea.KeyMsg) Model {
 		m.init.showDetail = false
 		m.init.detail = nil
 		m.init.detailCombat = nil
-	case "up":
-		if m.monster.scroll > 0 {
-			m.monster.scroll--
+	}
+	return m
+}
+
+func (m Model) updateHealPopup(msg tea.KeyMsg) Model {
+	switch msg.String() {
+	case "esc":
+		m.init.healInput.Blur()
+		m.init.healInput.SetValue("")
+		m.init.healMode = 0
+	case "enter":
+		val, err := strconv.Atoi(m.init.healInput.Value())
+		if err != nil || val <= 0 {
+			break
 		}
-	case "down":
-		m.monster.scroll++
+		cursor := m.init.tbl.Cursor()
+		if cursor < len(m.init.combatants) {
+			if m.init.healMode == 1 {
+				m.init.combatants[cursor].HP -= val
+				if m.init.combatants[cursor].HP < 0 {
+					m.init.combatants[cursor].HP = 0
+				}
+			} else {
+				m.init.combatants[cursor].HP += val
+				if m.init.combatants[cursor].HP > m.init.combatants[cursor].MaxHP {
+					m.init.combatants[cursor].HP = m.init.combatants[cursor].MaxHP
+				}
+			}
+			m.init.syncTable()
+		}
+		m.init.healInput.Blur()
+		m.init.healInput.SetValue("")
+		m.init.healMode = 0
+	default:
+		var cmd tea.Cmd
+		m.init.healInput, cmd = m.init.healInput.Update(msg)
+		_ = cmd
 	}
 	return m
 }
@@ -305,13 +346,24 @@ func (m Model) updateInitList(msg tea.KeyMsg) Model {
 	case "p", "left":
 		m.init.prevTurn()
 		m.init.tbl.SetCursor(m.init.current)
+	case "-":
+		if len(m.init.combatants) > 0 {
+			m.init.healInput.SetValue("")
+			m.init.healInput.Focus()
+			m.init.healMode = 1
+		}
+	case "+":
+		if len(m.init.combatants) > 0 {
+			m.init.healInput.SetValue("")
+			m.init.healInput.Focus()
+			m.init.healMode = 2
+		}
 	case "enter", "v":
 		if len(m.init.combatants) > 0 {
 			cursor := m.init.tbl.Cursor()
 			m.init.detailCombat = &m.init.combatants[cursor]
 			m.init.detail = m.init.combatants[cursor].Monster
 			m.init.showDetail = true
-			m.monster.scroll = 0
 		}
 	default:
 		var cmd tea.Cmd
@@ -324,6 +376,9 @@ func (m Model) updateInitList(msg tea.KeyMsg) Model {
 func (m Model) renderInitiativeContent() string {
 	if m.init.addMode > 0 {
 		return m.renderInitWizard()
+	}
+	if m.init.healMode > 0 {
+		return m.renderHealPopup()
 	}
 	if m.init.showDetail {
 		return m.renderInitDetail()
@@ -354,6 +409,29 @@ func (m Model) renderInitWizard() string {
 	b.WriteString(faint.Render("Enter: next  •  esc: cancel"))
 
 	popup := popupStyle.Render(b.String())
+	ch := m.height - 2
+	if ch < 1 {
+		ch = 1
+	}
+	return lipgloss.Place(m.width, ch, lipgloss.Center, lipgloss.Center, popup)
+}
+
+func (m Model) renderHealPopup() string {
+	label := "Dano"
+	style := red
+	if m.init.healMode == 2 {
+		label = "Cura"
+		style = green
+	}
+
+	var content strings.Builder
+	content.WriteString(popupTitle.Render(label))
+	content.WriteString("\n\n")
+	content.WriteString(style.Render(m.init.healInput.View()))
+	content.WriteString("\n\n")
+	content.WriteString(faint.Render("Enter: aplicar  •  esc: cancelar"))
+
+	popup := popupStyle.Render(content.String())
 	ch := m.height - 2
 	if ch < 1 {
 		ch = 1
@@ -445,47 +523,65 @@ func writeMonsterStats(b *strings.Builder, mon monster.Monster, maxW int) {
 		txtW = 20
 	}
 
+	sec := func(title string) {
+		b.WriteString(sectionStyle.Render(title))
+		b.WriteString("\n")
+	}
+
+	sec("Identidade")
 	writeField(b, "Size/Type", formatTypeLine(mon))
 	writeField(b, "Hit Dice", mon.HitDice)
-	writeField(b, "HP", fmt.Sprintf("%d", mon.HP))
-	writeField(b, "Initiative", mon.Initiative)
-	writeField(b, "Speed", mon.Speed)
-	writeField(b, "AC", mon.ArmorClass)
-	writeField(b, "Base Atk", mon.BaseAttack)
-	writeField(b, "Grapple", mon.Grapple)
+	writeField(b, "Alignment", mon.Alignment)
+	b.WriteString("\n")
+
+	sec("Defesa")
+	writeField(b, "HP", fmt.Sprintf("%d", mon.HP), hpStyle)
+	writeField(b, "AC", mon.ArmorClass, acStyle)
+	writeField(b, "Saves", mon.Saves)
+	b.WriteString("\n")
+
+	sec("Combate")
 	writeField(b, "Attack", mon.Attack)
 	writeField(b, "Full Attack", wordwrap.String(mon.FullAttack, valW))
+	writeField(b, "Base Atk", mon.BaseAttack)
+	writeField(b, "Grapple", mon.Grapple)
 	writeField(b, "Space/Reach", formatSpaceReach(mon))
-	writeField(b, "Saves", mon.Saves)
+	b.WriteString("\n")
+
+	sec("Deslocamento")
+	writeField(b, "Speed", mon.Speed)
+	writeField(b, "Initiative", mon.Initiative)
+	b.WriteString("\n")
+
+	sec("Atributos")
 	writeField(b, "Abilities", mon.Abilities)
 	writeField(b, "Skills", wordwrap.String(mon.Skills, valW))
 	writeField(b, "Feats", wordwrap.String(mon.Feats, valW))
+	b.WriteString("\n")
+
+	sec("Ambiente")
 	writeField(b, "Environment", mon.Environment)
 	writeField(b, "Organization", wordwrap.String(mon.Organization, valW))
 	writeField(b, "Treasure", mon.Treasure)
-	writeField(b, "Alignment", mon.Alignment)
 
 	if mon.SpecialAttacks != "" {
-		b.WriteString("\n")
-		b.WriteString(yellow.Render("Special Attacks:"))
+		b.WriteString("\n\n")
+		b.WriteString(sectionStyle.Render("Ataques Especiais"))
 		b.WriteString("\n")
 		b.WriteString(wordwrap.String(mon.SpecialAttacks, txtW))
-		b.WriteString("\n")
 	}
 
 	if mon.SpecialQualities != "" {
-		b.WriteString("\n")
-		b.WriteString(yellow.Render("Special Qualities:"))
+		b.WriteString("\n\n")
+		b.WriteString(sectionStyle.Render("Qualidades Especiais"))
 		b.WriteString("\n")
 		b.WriteString(wordwrap.String(mon.SpecialQualities, txtW))
-		b.WriteString("\n")
 	}
 
 	if mon.FullText != "" {
-		b.WriteString("\n")
-		b.WriteString(faint.Render("Description:"))
+		b.WriteString("\n\n")
+		b.WriteString(sectionStyle.Render("Descrição"))
 		b.WriteString("\n")
 		b.WriteString(stripHTML(mon.FullText))
-		b.WriteString("\n")
 	}
 }

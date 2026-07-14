@@ -29,10 +29,13 @@ var (
 			BorderForeground(lipgloss.Color("#00FF00")).
 			Padding(1, 2)
 
-	popupTitle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
-	lootTitle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
-	diceResult  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF00"))
-	inputBorder = lipgloss.NewStyle().
+	popupTitle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
+	lootTitle    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
+	diceResult   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF00"))
+	sectionStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00CED1"))
+	hpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00"))
+	acStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	inputBorder  = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderTop(true).
 			BorderBottom(true).

@@ -41,6 +41,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.monster.SetTableHeight(msg.Height)
+		m.monster.SetDetailViewportSize(msg.Width, msg.Height)
 		m.init.SetTableHeight(msg.Height)
 		return m, nil
 
@@ -165,7 +166,7 @@ func (m Model) renderFooter() string {
 		if m.init.addMode > 0 || m.init.showDetail {
 			text = "h/l: abas  •  esc: voltar  •  q: sair"
 		} else {
-			text = "h/l: abas  •  a: add  •  d: delete  •  n/p: turno  •  enter: detalhes  •  r: reset  •  q: sair"
+			text = "h/l: abas  •  a: add  •  d: delete  •  n/p: turno  •  -: dano  •  +: cura  •  enter: detalhes  •  r: reset  •  q: sair"
 		}
 	}
 	tw := runewidth.StringWidth(text)

@@ -6,6 +6,7 @@ import (
 	"unicode"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -16,10 +17,10 @@ type MonsterModel struct {
 	monsters []monster.Monster
 	filtered []monster.Monster
 	search   string
-	scroll   int
 	detail   *monster.Monster
 	err      error
 	tbl      table.Model
+	detailVP viewport.Model
 }
 
 func newMonsterTable(h int) table.Model {
@@ -86,6 +87,11 @@ func (m *MonsterModel) SetTableHeight(h int) {
 	m.tbl.SetHeight(th)
 }
 
+func (m *MonsterModel) SetDetailViewportSize(w, h int) {
+	m.detailVP.Width = w
+	m.detailVP.Height = h - 6
+}
+
 func (m Model) updateMonster(msg tea.KeyMsg) Model {
 	if m.monster.monsters == nil {
 		return m
@@ -106,8 +112,13 @@ func (m Model) updateMonsterList(msg tea.KeyMsg) Model {
 			if cursor < len(m.monster.filtered) {
 				mon := m.monster.filtered[cursor]
 				m.monster.detail = &mon
-				m.monster.scroll = 0
 				m.monster.tbl.Blur()
+				var content strings.Builder
+				writeMonsterStats(&content, mon, m.width-2)
+				m.monster.detailVP.SetContent(content.String())
+				m.monster.detailVP.Width = m.width - 2
+				m.monster.detailVP.Height = m.height - 6
+				m.monster.detailVP.GotoTop()
 			}
 		}
 	case "backspace":
@@ -148,16 +159,14 @@ func (m Model) updateMonsterList(msg tea.KeyMsg) Model {
 }
 
 func (m Model) updateMonsterDetail(msg tea.KeyMsg) Model {
+	var cmd tea.Cmd
+	m.monster.detailVP, cmd = m.monster.detailVP.Update(msg)
+	_ = cmd
+
 	switch msg.String() {
 	case "esc", "enter":
 		m.monster.detail = nil
 		m.monster.tbl.Focus()
-	case "up":
-		if m.monster.scroll > 0 {
-			m.monster.scroll--
-		}
-	case "down":
-		m.monster.scroll++
 	case "i":
 		m.init.pendingMonster = m.monster.detail
 		m.init.inputs[0].SetValue(m.monster.detail.Name)
@@ -221,14 +230,14 @@ func (m Model) renderMonsterDetail() string {
 	b.WriteString(faint.Render(strings.Repeat("─", 50)))
 	b.WriteString("\n\n")
 
-	writeMonsterStats(&b, mon, m.width-2)
+	b.WriteString(m.monster.detailVP.View())
 
 	b.WriteString("\n")
 	b.WriteString(faint.Render("[i] add to initiative  •  [esc] back"))
 	return b.String()
 }
 
-func writeField(b *strings.Builder, label, value string) {
+func writeField(b *strings.Builder, label, value string, style ...lipgloss.Style) {
 	if value == "" || value == "0" {
 		return
 	}
@@ -237,7 +246,11 @@ func writeField(b *strings.Builder, label, value string) {
 	if len(label) >= 13 {
 		b.WriteString(" ")
 	}
-	b.WriteString(value)
+	if len(style) > 0 {
+		b.WriteString(style[0].Render(value))
+	} else {
+		b.WriteString(value)
+	}
 	b.WriteString("\n")
 }
 
