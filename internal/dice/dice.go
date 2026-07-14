@@ -18,8 +18,8 @@ type Group struct {
 }
 
 type RollResult struct {
-	Expression    string
-	Groups        []Group
+	Expression      string
+	Groups          []Group
 	Modifier, Total int
 }
 
@@ -50,7 +50,12 @@ func Roll(expr string) (*RollResult, error) {
 func (r *RollResult) String() string {
 	parts := make([]string, 0, len(r.Groups))
 	for _, g := range r.Groups {
-		s := joinInts(g.Rolls, "+")
+		rolls := make([]string, len(g.Rolls))
+		for i, v := range g.Rolls {
+			rolls[i] = strconv.Itoa(v)
+		}
+		s := strings.Join(rolls, "+")
+
 		if g.Sign < 0 || g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
 			s = "(" + s + ")"
 		}
@@ -77,67 +82,64 @@ func (r *RollResult) String() string {
 }
 
 func parse(s string) ([]Group, int, error) {
+	sign := 1
 	pos := 0
-	groups := []Group{}
+	first := true
+
+	var groups []Group
 	mod := 0
 
-	sign := 1
-	if pos < len(s) && s[pos] == '+' { pos++ }
-	if pos < len(s) && s[pos] == '-' { sign = -1; pos++ }
-
-	c, sides, ok := dice(s, &pos)
-	if !ok {
-		return nil, 0, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
-	}
-	groups = append(groups, Group{Count: c, Sides: sides, Sign: sign})
-
 	for pos < len(s) {
-		switch s[pos] {
-		case '+': sign = 1; pos++
-		case '-': sign = -1; pos++
-		default: return nil, 0, fmt.Errorf("caractere inesperado: %c", s[pos])
+		if first {
+			if s[pos] == '+' {
+				pos++
+			} else if s[pos] == '-' {
+				sign = -1
+				pos++
+			}
+		} else {
+			switch s[pos] {
+			case '+':
+				sign = 1
+				pos++
+			case '-':
+				sign = -1
+				pos++
+			default:
+				return nil, 0, fmt.Errorf("caractere inesperado: %c", s[pos])
+			}
 		}
 
-		if c, sides, ok = dice(s, &pos); ok {
-			groups = append(groups, Group{Count: c, Sides: sides, Sign: sign})
-		} else {
-			mod += sign * digits(s, &pos)
+		start := pos
+		for pos < len(s) && unicode.IsDigit(rune(s[pos])) {
+			pos++
 		}
+		n := 1
+		if pos > start {
+			n, _ = strconv.Atoi(s[start:pos])
+		}
+
+		if pos < len(s) && s[pos] == 'd' {
+			pos++
+			start = pos
+			for pos < len(s) && unicode.IsDigit(rune(s[pos])) {
+				pos++
+			}
+			sides := 1
+			if pos > start {
+				sides, _ = strconv.Atoi(s[start:pos])
+			}
+			groups = append(groups, Group{Count: n, Sides: sides, Sign: sign})
+			first = false
+		} else if first {
+			return nil, 0, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
+		} else {
+			mod += sign * n
+		}
+	}
+
+	if first {
+		return nil, 0, errors.New("expressao vazia")
 	}
 	return groups, mod, nil
-}
-
-func dice(s string, pos *int) (int, int, bool) {
-	saved := *pos
-	c := digits(s, pos)
-	if *pos >= len(s) || s[*pos] != 'd' {
-		*pos = saved
-		return 0, 0, false
-	}
-	*pos++
-	return c, max(digits(s, pos), 1), true
-}
-
-func digits(s string, pos *int) int {
-	start := *pos
-	for *pos < len(s) && unicode.IsDigit(rune(s[*pos])) {
-		*pos++
-	}
-	if start == *pos {
-		return 1
-	}
-	return max(1, atoi(s[start:*pos]))
-}
-
-func atoi(s string) int {
-	n, _ := strconv.Atoi(s)
-	return n
-}
-
-func joinInts(v []int, sep string) string {
-	s := make([]string, len(v))
-	for i, n := range v {
-		s[i] = strconv.Itoa(n)
-	}
-	return strings.Join(s, sep)
 }
