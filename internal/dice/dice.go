@@ -9,28 +9,18 @@ import (
 	"unicode"
 )
 
-const (
-	D4   = 4
-	D6   = 6
-	D8   = 8
-	D10  = 10
-	D12  = 12
-	D20  = 20
-	D100 = 100
-)
+const (D4, D6, D8, D10, D12, D20, D100 = 4, 6, 8, 10, 12, 20, 100)
 
 type Group struct {
-	Count int
-	Sides int
-	Rolls []int
-	Sign  int
+	Count, Sides int
+	Rolls        []int
+	Sign         int
 }
 
 type RollResult struct {
-	Expression string
-	Groups     []Group
-	Modifier   int
-	Total      int
+	Expression    string
+	Groups        []Group
+	Modifier, Total int
 }
 
 func Roll(expr string) (*RollResult, error) {
@@ -39,160 +29,115 @@ func Roll(expr string) (*RollResult, error) {
 		return nil, errors.New("expressao vazia")
 	}
 
-	groups, modifier, err := parseExpr(expr)
+	groups, mod, err := parse(expr)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &RollResult{
-		Expression: expr,
-		Groups:     groups,
-		Modifier:   modifier,
-	}
-
-	for i := range result.Groups {
-		g := &result.Groups[i]
+	r := &RollResult{Expression: expr, Groups: groups, Modifier: mod}
+	for i := range r.Groups {
+		g := &r.Groups[i]
 		for range g.Count {
-			roll := rand.Intn(g.Sides) + 1
-			g.Rolls = append(g.Rolls, roll)
-			result.Total += g.Sign * roll
+			v := rand.Intn(g.Sides) + 1
+			g.Rolls = append(g.Rolls, v)
+			r.Total += g.Sign * v
 		}
 	}
-	result.Total += modifier
-
-	return result, nil
+	r.Total += mod
+	return r, nil
 }
 
 func (r *RollResult) String() string {
 	parts := make([]string, 0, len(r.Groups))
-
 	for _, g := range r.Groups {
-		rolls := make([]string, len(g.Rolls))
-		for i, v := range g.Rolls {
-			rolls[i] = strconv.Itoa(v)
-		}
-		text := strings.Join(rolls, "+")
-
+		s := joinInts(g.Rolls, "+")
 		if g.Sign < 0 || g.Count > 1 || len(r.Groups) > 1 || r.Modifier != 0 {
-			text = "(" + text + ")"
+			s = "(" + s + ")"
 		}
-
 		if g.Sign < 0 {
 			if len(parts) == 0 {
-				parts = append(parts, "-"+text)
+				parts = append(parts, "-"+s)
 			} else {
-				parts = append(parts, "- "+text)
+				parts = append(parts, "- "+s)
 			}
 		} else if len(parts) > 0 {
-			parts = append(parts, "+ "+text)
+			parts = append(parts, "+ "+s)
 		} else {
-			parts = append(parts, text)
+			parts = append(parts, s)
 		}
 	}
-
 	if r.Modifier != 0 {
-		if len(parts) > 0 {
-			if r.Modifier > 0 {
-				parts = append(parts, "+ "+strconv.Itoa(r.Modifier))
-			} else {
-				parts = append(parts, "- "+strconv.Itoa(-r.Modifier))
-			}
+		if r.Modifier > 0 {
+			parts = append(parts, "+ "+strconv.Itoa(r.Modifier))
 		} else {
-			parts = append(parts, strconv.Itoa(r.Modifier))
+			parts = append(parts, "- "+strconv.Itoa(-r.Modifier))
 		}
 	}
-
 	return strings.Join(parts, " ") + " = " + strconv.Itoa(r.Total)
 }
 
-func parseExpr(s string) ([]Group, int, error) {
-	p := &parser{raw: s}
+func parse(s string) ([]Group, int, error) {
+	pos := 0
+	groups := []Group{}
+	mod := 0
 
 	sign := 1
-	if p.next() {
-		switch p.raw[p.pos] {
-		case '+':
-			p.pos++
-		case '-':
-			sign = -1
-			p.pos++
-		}
-	}
+	if pos < len(s) && s[pos] == '+' { pos++ }
+	if pos < len(s) && s[pos] == '-' { sign = -1; pos++ }
 
-	count, sides, ok := p.readDice()
+	c, sides, ok := dice(s, &pos)
 	if !ok {
 		return nil, 0, errors.New("expressao deve comecar com um dado (ex: d20, 2d6)")
 	}
+	groups = append(groups, Group{Count: c, Sides: sides, Sign: sign})
 
-	groups := []Group{{Count: count, Sides: sides, Sign: sign}}
-	modifier := 0
-
-	for p.next() {
-		sign = p.readSign()
-		if p.err != nil {
-			return nil, 0, p.err
+	for pos < len(s) {
+		switch s[pos] {
+		case '+': sign = 1; pos++
+		case '-': sign = -1; pos++
+		default: return nil, 0, fmt.Errorf("caractere inesperado: %c", s[pos])
 		}
 
-		if count, sides, ok = p.readDice(); ok {
-			groups = append(groups, Group{Count: count, Sides: sides, Sign: sign})
+		if c, sides, ok = dice(s, &pos); ok {
+			groups = append(groups, Group{Count: c, Sides: sides, Sign: sign})
 		} else {
-			modifier += sign * p.readNumber()
+			mod += sign * digits(s, &pos)
 		}
 	}
-
-	return groups, modifier, nil
+	return groups, mod, nil
 }
 
-type parser struct {
-	raw string
-	pos int
-	err error
-}
-
-func (p *parser) next() bool {
-	return p.err == nil && p.pos < len(p.raw)
-}
-
-func (p *parser) readSign() int {
-	switch p.raw[p.pos] {
-	case '+':
-		p.pos++
-		return 1
-	case '-':
-		p.pos++
-		return -1
-	default:
-		p.err = fmt.Errorf("caractere inesperado: %c", p.raw[p.pos])
-		return 0
+func dice(s string, pos *int) (int, int, bool) {
+	saved := *pos
+	c := digits(s, pos)
+	if *pos >= len(s) || s[*pos] != 'd' {
+		*pos = saved
+		return 0, 0, false
 	}
+	*pos++
+	return c, max(digits(s, pos), 1), true
 }
 
-func (p *parser) readNumber() int {
-	start := p.pos
-	for p.pos < len(p.raw) && unicode.IsDigit(rune(p.raw[p.pos])) {
-		p.pos++
+func digits(s string, pos *int) int {
+	start := *pos
+	for *pos < len(s) && unicode.IsDigit(rune(s[*pos])) {
+		*pos++
 	}
-	if start == p.pos {
+	if start == *pos {
 		return 1
 	}
-	n, _ := strconv.Atoi(p.raw[start:p.pos])
-	if n < 1 {
-		return 1
-	}
+	return max(1, atoi(s[start:*pos]))
+}
+
+func atoi(s string) int {
+	n, _ := strconv.Atoi(s)
 	return n
 }
 
-func (p *parser) readDice() (count, sides int, ok bool) {
-	saved := p.pos
-	count = p.readNumber()
-	if !p.next() || p.raw[p.pos] != 'd' {
-		p.pos = saved
-		return 0, 0, false
+func joinInts(v []int, sep string) string {
+	s := make([]string, len(v))
+	for i, n := range v {
+		s[i] = strconv.Itoa(n)
 	}
-	p.pos++
-	sides = p.readNumber()
-	if sides < 1 {
-		sides = 1
-	}
-	return count, sides, true
+	return strings.Join(s, sep)
 }
