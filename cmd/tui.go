@@ -10,7 +10,7 @@ var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "Inicia a interface interativa no terminal",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		p := tea.NewProgram(tui.New())
+		p := tea.NewProgram(tui.New(), tea.WithAltScreen())
 		_, err := p.Run()
 		return err
 	},

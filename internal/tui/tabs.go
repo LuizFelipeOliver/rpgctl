@@ -12,21 +12,19 @@ type Tab struct {
 
 var tabs = []Tab{
 	{Name: "Loot"},
-	{Name: "Dados"},
 	{Name: "Monsters"},
 	{Name: "Iniciativa"},
+	{Name: "Encontro"},
 }
 
 func renderTabs(active int, width int) string {
 	var b strings.Builder
 
 	for i, t := range tabs {
-		name := t.Name
 		if i == active {
-			name = "[" + name + "]"
-			b.WriteString(activeTabStyle.Render(name))
+			b.WriteString(activeTabStyle.Render("● " + t.Name))
 		} else {
-			b.WriteString(inactiveTabStyle.Render(name))
+			b.WriteString(inactiveTabStyle.Render("○ " + t.Name))
 		}
 		if i < len(tabs)-1 {
 			b.WriteString("  ")

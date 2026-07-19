@@ -1,11 +1,11 @@
 package tui
 
 import (
-	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mattn/go-runewidth"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Model struct {
@@ -13,10 +13,13 @@ type Model struct {
 	width     int
 	height    int
 	countBuf  string
+	popup     *Popup
+	help      help.Model
 	loot      LootModel
 	dice      DiceModel
 	monster   MonsterModel
 	init      InitiativeModel
+	encounter EncounterModel
 }
 
 func New() Model {
@@ -24,10 +27,12 @@ func New() Model {
 		activeTab: 0,
 		width:     80,
 		height:    24,
+		help:      newHelpModel(),
 		loot:      NewLootModel(),
 		dice:      NewDiceModel(),
 		monster:   NewMonsterModel(),
 		init:      NewInitiativeModel(),
+		encounter: NewEncounterModel(),
 	}
 }
 
@@ -40,99 +45,139 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.monster.SetTableHeight(msg.Height)
-		m.monster.SetDetailViewportSize(msg.Width, msg.Height)
-		m.init.SetTableHeight(msg.Height)
+		m.loot.SetTableSize(msg.Width-6, msg.Height-10)
+		m.monster.SetTableSize(msg.Width-6, msg.Height-10)
+		m.init.SetTableSize(msg.Width-6, msg.Height-9)
+		m.encounter.SetTableSize(msg.Width-6, msg.Height-10)
+		if m.popup != nil {
+			m.popup.SetSize(msg.Width-6, msg.Height-12)
+		}
+		return m, nil
+
+	case PopupCloseMsg:
+		m.popup = nil
+		return m, nil
+
+	case AddToInitMsg:
+		m.popup = nil
+		wiz := NewWizardPopupModel()
+		wiz.Prefill(msg.Monster)
+		m.popup = NewPopup(wiz, 60, 75)
+		m.activeTab = 3
+		return m, nil
+
+	case ResetConfirmMsg:
+		m.popup = nil
+		m.init.reset()
+		m.init.syncTable()
+		return m, nil
+
+	case HealApplyMsg:
+		m.popup = nil
+		if msg.Cursor >= 0 && msg.Cursor < len(m.init.combatants) {
+			if msg.IsDamage {
+				m.init.combatants[msg.Cursor].HP -= msg.Amount
+				if m.init.combatants[msg.Cursor].HP < 0 {
+					m.init.combatants[msg.Cursor].HP = 0
+				}
+			} else {
+				m.init.combatants[msg.Cursor].HP += msg.Amount
+				max := m.init.combatants[msg.Cursor].MaxHP
+				if m.init.combatants[msg.Cursor].HP > max {
+					m.init.combatants[msg.Cursor].HP = max
+				}
+			}
+			m.init.syncTable()
+		}
+		return m, nil
+
+	case WizardCompleteMsg:
+		m.popup = nil
+		name := strings.TrimSpace(msg.Name)
+		if name != "" {
+			c := Combatant{
+				Name:       name,
+				Initiative: msg.Initiative,
+				HP:         msg.HP,
+				MaxHP:      msg.HP,
+				AC:         msg.AC,
+				Monster:    msg.Monster,
+			}
+			m.init.combatants = append(m.init.combatants, c)
+			m.init.sorted()
+			m.init.syncTable()
+		}
 		return m, nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c":
-			return m, tea.Quit
-		case "q":
+		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		case "h", "left":
+		case "ctrl+h":
 			if m.activeTab > 0 {
 				m.activeTab--
 				m.countBuf = ""
 			}
 			return m, nil
 
-		case "l", "right":
+		case "ctrl+l":
 			if m.activeTab < len(tabs)-1 {
 				m.activeTab++
 				m.countBuf = ""
 			}
 			return m, nil
+
+		case "ctrl+d":
+			m.dice = DiceModel{input: m.dice.input}
+			m.dice.input.Focus()
+			m.popup = NewPopup(&m.dice, 50, 50)
+			return m, nil
+		}
+
+		if m.popup != nil {
+			var cmd tea.Cmd
+			var updated tea.Model
+			updated, cmd = m.popup.Update(msg)
+			m.popup = updated.(*Popup)
+			return m, cmd
 		}
 
 		switch m.activeTab {
 		case 0:
 			return m.updateLoot(msg), nil
 		case 1:
-			return m.updateDice(msg), nil
-		case 2:
 			return m.updateMonster(msg), nil
-		case 3:
+		case 2:
 			return m.updateInitiative(msg), nil
+		case 3:
+			return m.updateEncounter(msg), nil
 		}
 	}
 
 	return m, nil
 }
 
-func (m Model) updateLoot(msg tea.KeyMsg) Model {
-	switch msg.String() {
-	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-		m.countBuf += msg.String()
-	case "g":
-		n := 5
-		if m.countBuf != "" {
-			if v, err := strconv.Atoi(m.countBuf); err == nil && v > 0 {
-				n = v
-			}
-			if n > 100 {
-				n = 100
-			}
-		}
-		m.countBuf = ""
-		m.loot.Generate(n)
-	default:
-		m.countBuf = ""
-	}
-	return m
-}
-
-func (m Model) updateDice(msg tea.KeyMsg) Model {
-	m.dice = m.dice.Update(msg)
-	return m
-}
-
 func (m Model) View() string {
-	tabBar := renderTabs(m.activeTab, m.width)
-	content := m.renderContent()
+	innerW := m.width - 6
+	tabBar := renderTabs(m.activeTab, innerW)
 	footer := m.renderFooter()
 
-	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		lw := runewidth.StringWidth(line)
-		if pad := m.width - lw; pad > 0 {
-			lines[i] = line + strings.Repeat(" ", pad)
-		}
-	}
-	content = strings.Join(lines, "\n")
-
-	tabLines := strings.Count(tabBar, "\n") + 1
-	contentLines := strings.Count(content, "\n") + 1
-	footerLines := strings.Count(footer, "\n") + 1
-
-	padding := m.height - tabLines - contentLines - footerLines
-	if padding < 0 {
-		padding = 0
+	tabLines := lipgloss.Height(tabBar)
+	footerLines := lipgloss.Height(footer)
+	availH := m.height - 4 - tabLines - footerLines
+	if availH < 1 {
+		availH = 1
 	}
 
-	return tabBar + "\n" + content + strings.Repeat("\n", padding) + "\n" + footer
+	body := lipgloss.Place(innerW, availH, lipgloss.Top, lipgloss.Left, m.renderContent())
+	if m.popup != nil {
+		m.popup.SetSize(innerW, availH)
+		body = m.popup.View()
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Top, tabBar, body, footer)
+	return borderStyle.Render(content)
 }
 
 func (m Model) renderContent() string {
@@ -140,38 +185,16 @@ func (m Model) renderContent() string {
 	case 0:
 		return m.renderLootContent()
 	case 1:
-		return m.renderDiceContent()
-	case 2:
 		return m.renderMonsterContent()
-	case 3:
+	case 2:
 		return m.renderInitiativeContent()
+	case 3:
+		return m.renderEncounterContent()
 	}
 	return ""
 }
 
 func (m Model) renderFooter() string {
-	var text string
-	switch m.activeTab {
-	case 0:
-		text = "h/l: abas  •  [N]g: gerar  •  q: sair"
-	case 1:
-		text = "h/l: abas  •  d: dados  •  q: sair"
-	case 2:
-		if m.monster.detail != nil {
-			text = "h/l: abas  •  esc: voltar  •  ↑↓: rolar  •  i: add iniciativa  •  q: sair"
-		} else {
-			text = "h/l: abas  •  digitar: buscar  •  ↑↓: navegar  •  enter: detalhes  •  q: sair"
-		}
-	case 3:
-		if m.init.addMode > 0 || m.init.showDetail {
-			text = "h/l: abas  •  esc: voltar  •  q: sair"
-		} else {
-			text = "h/l: abas  •  a: add  •  d: delete  •  n/p: turno  •  -: dano  •  +: cura  •  enter: detalhes  •  r: reset  •  q: sair"
-		}
-	}
-	tw := runewidth.StringWidth(text)
-	if pad := m.width - tw; pad > 0 {
-		text += strings.Repeat(" ", pad)
-	}
-	return footerStyle.Render(text)
+	m.help.Width = m.width - 6
+	return footerStyle.Render(m.help.View(m.footerKeys()))
 }
